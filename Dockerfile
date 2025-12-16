@@ -21,10 +21,11 @@ FROM base AS prerelease
 COPY --from=install /temp/dev/node_modules node_modules
 COPY . .
 
-# [optional] tests & build
-#ENV NODE_ENV=production
-#RUN bun test
-#RUN bun run build
+# Build frontend
+# We need to install frontend deps.
+# Note: src/frontend/vite.config.ts is configured to output to ../../dist/frontend
+# which corresponds to /usr/src/app/dist/frontend in this context.
+RUN cd src/frontend && bun install && bun run build
 
 # copy production dependencies and source code into final image
 FROM base AS release
@@ -32,7 +33,11 @@ COPY --from=install /temp/prod/node_modules node_modules
 COPY --from=prerelease /usr/src/app/index.ts .
 COPY --from=prerelease /usr/src/app/constants.ts .
 COPY --from=prerelease /usr/src/app/src src
+COPY --from=prerelease /usr/src/app/dist dist
 COPY --from=prerelease /usr/src/app/package.json .
+
+# Clean up frontend source from final image to reduce size (optional but good practice)
+RUN rm -rf src/frontend
 
 ENV FILECONFIG_PATH=/etc/fonts
 
