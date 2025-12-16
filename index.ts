@@ -12,6 +12,8 @@ import type { UserState } from "./src/types.ts";
 import { GameManager } from "./src/poker/GameManager.ts";
 import { validateWebAppData } from "./src/utils/telegram.ts";
 
+console.log("VERSION 2.0 STARTING...");
+
 // --- Poker Manager ---
 const gameManager = new GameManager();
 
@@ -164,6 +166,15 @@ if (IS_PRODUCTION) {
   console.log("Development Mode: Starting Long Polling...");
   // Clear any existing webhook to ensure polling works
   bot.api.deleteWebhook()
-    .then(() => bot.start())
-    .catch((err) => console.error("Failed to start polling:", err));
+    .then(() => {
+        console.log("Webhook deleted. Starting polling...");
+        return bot.start({
+            onStart: (info) => {
+                console.log(`Bot started! @${info.username} (ID: ${info.id})`);
+            }
+        });
+    })
+    .catch((err) => {
+        console.error("FATAL: Failed to start polling:", err);
+    });
 }
