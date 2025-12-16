@@ -9,6 +9,11 @@ import horses from "./src/intents/horses.ts";
 import { getUserStateSafe } from "./src/helpers.ts";
 import { kv } from "./src/kv.ts";
 import type { UserState } from "./src/types.ts";
+import { GameManager } from "./src/poker/GameManager.ts";
+import { validateWebAppData } from "./src/utils/telegram.ts";
+
+// --- Poker Manager ---
+const gameManager = new GameManager();
 
 bot.command("__debug", async (ctx) => {
   await ctx.reply(
@@ -74,25 +79,91 @@ bot.errorHandler = (error) => {
 
 logStart();
 
-if (IS_PRODUCTION) {
-  console.log("Listening on WebHook...");
-  const handleUpdate = webhookCallback(bot, "bun");
+// Setup Webhook Callback
+const handleUpdate = webhookCallback(bot, "std/http");
 
-  Bun.serve({
-    async fetch(req) {
-      if (req.method === "POST") {
-        const url = new URL(req.url);
-        if (url.pathname.slice(1) === bot.token) {
-          try {
-            return await handleUpdate(req);
-          } catch (err) {
-            console.error(err);
-          }
-        }
+// Start Server (Mini App + WebSocket + Webhook if PROD)
+console.log("Starting Web Server...");
+Bun.serve({
+  port: 3000,
+  async fetch(req, server) {
+    const url = new URL(req.url);
+
+    // WebSocket Upgrade
+    if (url.pathname === '/ws') {
+       const initData = url.searchParams.get('initData');
+       if (!initData) return new Response('Missing initData', { status: 401 });
+
+       try {
+           const user = validateWebAppData(initData, bot.token);
+           if (server.upgrade(req, { data: { user } })) {
+               return undefined;
+           }
+       } catch (e) {
+           console.error('WS Auth Failed', e);
+           return new Response('Unauthorized', { status: 401 });
+       }
+       return new Response('Upgrade failed', { status: 500 });
+    }
+
+    // Serve Static Frontend
+    if (url.pathname.startsWith('/app')) {
+      let filePath = url.pathname.replace('/app', '');
+      if (filePath === '' || filePath === '/') filePath = '/index.html';
+      if (filePath.includes('..')) return new Response('Forbidden', { status: 403 });
+
+      const file = Bun.file(`./dist/frontend${filePath}`);
+      if (await file.exists()) {
+           return new Response(file);
+      } else {
+           if (!filePath.match(/\.(js|css|png|jpg|svg)$/)) {
+                const index = Bun.file('./dist/frontend/index.html');
+                if (await index.exists()) return new Response(index);
+           }
       }
-      return new Response();
-    },
-  });
+      return new Response('Not Found', { status: 404 });
+    }
+
+    // Telegram Webhook (Only processed if IS_PRODUCTION)
+    if (IS_PRODUCTION && req.method === "POST" && url.pathname.slice(1) === bot.token) {
+      try {
+        return await handleUpdate(req);
+      } catch (err) {
+        console.error(err);
+        return new Response("Error", { status: 500 });
+      }
+    }
+
+    return new Response("Busino Poker Server OK");
+  },
+  websocket: {
+      open(ws) {
+          // @ts-ignore
+          const user = ws.data.user;
+          console.log(`WS Connected: ${user.id} (${user.first_name})`);
+          gameManager.handleConnection(ws);
+      },
+      message(ws, message) {
+          // @ts-ignore
+          const user = ws.data.user;
+          gameManager.processMessage(ws, message, user);
+      },
+      close(ws, code, message) {
+          // @ts-ignore
+          const user = ws.data.user;
+          console.log(`WS Closed: ${user.id} code=${code} msg=${message}`);
+          gameManager.handleDisconnect(user.id);
+      }
+  }
+});
+
+if (IS_PRODUCTION) {
+  console.log("Production Mode: Listening on WebHook...");
+  // Webhook handled in fetch
 } else {
-  bot.start();
+  console.log("Development Mode: Starting Long Polling...");
+  // Clear any existing webhook to ensure polling works
+  bot.api.deleteWebhook()
+    .then(() => bot.start())
+    .catch((err) => console.error("Failed to start polling:", err));
 }
