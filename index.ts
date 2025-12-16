@@ -81,8 +81,8 @@ bot.errorHandler = (error) => {
 
 logStart();
 
-// Setup Webhook Callback
-const handleUpdate = webhookCallback(bot, "std/http");
+// We initialize webhook handler lazy to avoid conflict with polling
+let handleUpdate: ReturnType<typeof webhookCallback> | null = null;
 
 // Start Server (Mini App + WebSocket + Webhook if PROD)
 console.log("Starting Web Server...");
@@ -129,6 +129,7 @@ Bun.serve({
     // Telegram Webhook (Only processed if IS_PRODUCTION)
     if (IS_PRODUCTION && req.method === "POST" && url.pathname.slice(1) === bot.token) {
       try {
+        if (!handleUpdate) handleUpdate = webhookCallback(bot, "std/http");
         return await handleUpdate(req);
       } catch (err) {
         console.error(err);
