@@ -3,7 +3,7 @@ import { BlindStructure, ClientMessage, Lobby, ServerMessage } from './types';
 import { kv } from '../kv';
 import { UserState } from '../types';
 import { CURRENT_KEY } from '../../constants';
-import { validateWebAppData } from '../utils/telegram';
+import { validateWebAppData } from '../helpers/telegram';
 import { bot } from '../bot';
 
 const BLIND_STRUCTURES: BlindStructure[] = [

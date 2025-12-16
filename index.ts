@@ -10,7 +10,7 @@ import { getUserStateSafe } from "./src/helpers.ts";
 import { kv } from "./src/kv.ts";
 import type { UserState } from "./src/types.ts";
 import { GameManager } from "./src/poker/GameManager.ts";
-import { validateWebAppData } from "./src/utils/telegram.ts";
+import { validateWebAppData } from "./src/helpers/telegram.ts";
 
 console.log("VERSION 2.0 STARTING...");
 
