@@ -77,7 +77,8 @@ export type ServerMessage =
     | { type: 'PLAYER_ACTION', payload: { playerId: number, action: string, amount?: number } }
     | { type: 'ERROR', payload: { error: string } }
     | { type: 'LOBBY_LIST', payload: Lobby[] }
-    | { type: 'JOIN_SUCCESS', payload: { lobbyId: number } };
+    | { type: 'JOIN_SUCCESS', payload: { lobbyId: number } }
+    | { type: 'EMOTE', payload: { playerId: number, stickerId: number } };
 
 export type ClientMessage =
     | { type: 'JOIN', lobbyId: number, password?: string }
@@ -88,4 +89,5 @@ export type ClientMessage =
     | { type: 'CALL' }
     | { type: 'RAISE', amount: number }
     | { type: 'LIST_LOBBIES' }
-    | { type: 'GET_STATE' };
+    | { type: 'GET_STATE' }
+    | { type: 'EMOTE', stickerId: number };

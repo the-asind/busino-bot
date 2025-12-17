@@ -137,16 +137,11 @@ export class PokerTable {
             this.removePlayer(userId);
         } else if (msg.type === 'GET_STATE') {
             this.pushStateTo(userId);
-        } else if (msg.type === 'JOIN' && msg.seatIndex !== undefined) {
-             // Handle re-sit or sit in specific seat if logic allows
-             // For now we just add them if not there.
-             // But 'addPlayer' finds first empty.
-             // If player is already 'removed' but wants to sit back?
-             // GameManager handles 'JOIN'.
-             // If we want to support 'Sit Here' via socket on empty seat:
-             // We need to pass it up or handle it.
-             // But currently JOIN is handled by GameManager calling addPlayer.
-             // So this branch might not be hit for JOIN.
+        } else if (msg.type === 'EMOTE' && msg.stickerId !== undefined) {
+            this.broadcast({
+                type: 'EMOTE',
+                payload: { playerId: userId, stickerId: msg.stickerId }
+            });
         } else {
             this.handleClientAction(userId, msg);
         }

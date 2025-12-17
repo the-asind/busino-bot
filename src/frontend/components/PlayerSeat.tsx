@@ -2,6 +2,8 @@ import React from 'react';
 import { Player } from '../types';
 import { Card } from './Card';
 import { ChipStack } from './ChipStack';
+import { playTurnAlert } from '../utils/audio';
+import { useEffect } from 'react';
 
 interface PlayerSeatProps {
   player: Player;
@@ -99,7 +101,21 @@ export const PlayerSeat: React.FC<PlayerSeatProps> = ({ player, positionClass, s
             {player.isTurn && <div className="absolute bottom-0 left-0 h-[2px] bg-yellow-400 w-full animate-countdown"></div>}
           </div>
       </div>
+      <TurnTimer isTurn={player.isTurn} />
       <style>{`@keyframes countdown { from { width: 100%; } to { width: 0%; } } .animate-countdown { animation: countdown 15s linear forwards; }`}</style>
     </div>
   );
 };
+
+const TurnTimer: React.FC<{ isTurn: boolean }> = ({ isTurn }) => {
+    useEffect(() => {
+        let t: any;
+        if (isTurn) {
+            t = setTimeout(() => {
+                playTurnAlert();
+            }, 7500); // 15000 / 2
+        }
+        return () => { if(t) clearTimeout(t); };
+    }, [isTurn]);
+    return null;
+}
