@@ -85,4 +85,5 @@ export type ClientMessage =
     | { type: 'CHECK' }
     | { type: 'CALL' }
     | { type: 'RAISE', amount: number }
-    | { type: 'LIST_LOBBIES' };
+    | { type: 'LIST_LOBBIES' }
+    | { type: 'GET_STATE' };

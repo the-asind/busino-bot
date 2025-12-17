@@ -114,6 +114,8 @@ export class PokerTable {
     public handleMessage(userId: number, msg: ClientMessage) {
         if (msg.type === 'LEAVE') {
             this.removePlayer(userId);
+        } else if (msg.type === 'GET_STATE') {
+            this.pushStateTo(userId);
         } else {
             this.handleClientAction(userId, msg);
         }

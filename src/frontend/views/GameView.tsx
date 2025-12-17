@@ -150,6 +150,9 @@ export const GameView: React.FC<GameViewProps> = ({ lobbyId, blindStructure, onL
           }
       });
 
+      // Request initial state (in case we missed snapshot during transition)
+      webSocketService.send({ type: 'GET_STATE' });
+
       // We assume we are already JOINED via LobbyView.
       // Or if not, we should send JOIN here?
       // LobbyView handles JOIN.
