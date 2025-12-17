@@ -224,7 +224,7 @@ export const GameView: React.FC<GameViewProps> = ({ lobbyId, blindStructure, onL
       const ev = evaluateHand(myPlayer.cards, gameState.communityCards);
       const indices: number[] = [];
       gameState.communityCards.forEach((c, i) => {
-          if(ev.handCards.some(hc => hc.suit === c.suit && bc.rank === c.rank)) indices.push(i);
+          if(ev.handCards.some(hc => hc.suit === c.suit && hc.rank === c.rank)) indices.push(i);
       });
       return indices;
   }, [players, gameState]);
