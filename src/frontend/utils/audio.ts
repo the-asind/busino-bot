@@ -5,13 +5,13 @@ const AUDIO_BASE = '/app/assets/audio'; // Served via /app prefix
 
 type AudioCategory = 'file' | 'folder';
 
-interface AudioConfig {
+export interface AudioConfig {
     type: AudioCategory;
     path: string;
     count?: number; // Only for folders
 }
 
-const SOUND_MAP: Record<string, AudioConfig> = {
+export const SOUND_MAP: Record<string, AudioConfig> = {
     'button_click': { type: 'file', path: 'btn.ogg' },
     'check': { type: 'file', path: 'check.ogg' },
     'coins_clang': { type: 'file', path: 'coins_clang.ogg' },
