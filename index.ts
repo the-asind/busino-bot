@@ -93,16 +93,25 @@ Bun.serve({
 
     // WebSocket Upgrade
     if (url.pathname === '/ws') {
+       console.log('WS: Upgrade Request received');
        const initData = url.searchParams.get('initData');
-       if (!initData) return new Response('Missing initData', { status: 401 });
+       if (!initData) {
+           console.log('WS: Missing initData');
+           return new Response('Missing initData', { status: 401 });
+       }
 
        try {
            const user = validateWebAppData(initData, bot.token);
+           console.log(`WS: Auth success for ${user.id} (${user.first_name})`);
+
            if (server.upgrade(req, { data: { user } })) {
+               console.log('WS: Upgrade success');
                return undefined;
+           } else {
+               console.error('WS: Upgrade returned false');
            }
        } catch (e) {
-           console.error('WS Auth Failed', e);
+           console.error('WS Auth Failed:', e);
            return new Response('Unauthorized', { status: 401 });
        }
        return new Response('Upgrade failed', { status: 500 });
