@@ -54,7 +54,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({ onJoinGame }) => {
     // Poll less frequently to avoid flooding, but enough to see updates
     const interval = setInterval(() => {
          webSocketService.send({ type: 'LIST_LOBBIES' });
-    }, 2000);
+    }, 1000);
 
     return () => {
         clearInterval(interval);

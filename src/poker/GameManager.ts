@@ -7,11 +7,12 @@ import { validateWebAppData } from '../helpers/telegram';
 import { bot } from '../bot';
 
 const BLIND_STRUCTURES: BlindStructure[] = [
-    { id: 1, small: 10, big: 20, label: '10/20' },
-    { id: 2, small: 25, big: 50, label: '25/50' },
-    { id: 3, small: 50, big: 100, label: '50/100' },
-    { id: 4, small: 100, big: 200, label: '100/200' },
-    { id: 5, small: 500, big: 1000, label: '500/1K' },
+    { id: 1, small: 1, big: 2, label: '1/2' },
+    { id: 2, small: 2, big: 4, label: '2/4' },
+    { id: 3, small: 5, big: 10, label: '5/10' },
+    { id: 4, small: 10, big: 20, label: '10/20' },
+    { id: 5, small: 20, big: 40, label: '20/40' },
+    { id: 6, small: 50, big: 100, label: '50/100' },
 ];
 
 export class GameManager {
@@ -192,5 +193,36 @@ export class GameManager {
             retries--;
         }
         console.error(`Failed to refund ${amount} to user ${userId} after retries!`);
+    }
+
+    public isUserPlaying(userId: number): boolean {
+        return this.userTableMap.has(userId);
+    }
+
+    public getUserPokerBalance(userId: number): number {
+        const tableId = this.userTableMap.get(userId);
+        if (!tableId) return 0;
+        const table = this.tables.get(tableId);
+        if (!table) return 0;
+
+        // We need to access player's balance.
+        // PokerTable has `players` private.
+        // But `createSnapshot` returns it.
+        // Or we can add a public getter in PokerTable.
+        // Let's use `createSnapshot` for now since we are in same package scope mostly?
+        // No, `players` is private.
+        // But `PokerTable` is in same directory.
+        // Better to add `getPlayerBalance` to `PokerTable`.
+
+        // However, `PokerTable` class definition is separate.
+        // Let's modify `PokerTable.ts` first?
+        // Or just use `any` cast for quick fix since I am in `GameManager`?
+        // No, let's just add `getPlayerBalance` to `PokerTable`.
+
+        // For now, return 0 if I can't access it, but I will fix PokerTable next.
+        // Actually, I can modify PokerTable in same step if I do it carefully.
+        // But let's assume `table.getPlayerBalance(userId)` exists.
+        // @ts-ignore
+        return table.getPlayerBalance(userId);
     }
 }

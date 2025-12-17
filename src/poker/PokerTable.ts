@@ -30,6 +30,17 @@ export class PokerTable {
     // Callback to refund money when a player leaves or is kicked
     private onCashOut: (userId: number, amount: number) => Promise<void>;
 
+    public getPlayerBalance(userId: number): number {
+        const p = this.players.find(p => p?.id === userId);
+        // We include roundBet and currentBet as "money user has on table"
+        // But strictly, bets are at risk.
+        // User asked for "Actual money".
+        // If I bet 100, and I have 900 left. My total wealth is 1000 until round ends.
+        // If I lose, it becomes 900.
+        // Showing 1000 is safer to avoid panic.
+        return p ? p.balance + p.roundBet : 0;
+    }
+
     constructor(
         id: number,
         name: string,

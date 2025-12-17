@@ -17,6 +17,50 @@ console.log("VERSION 2.0 STARTING...");
 // --- Poker Manager ---
 const gameManager = new GameManager();
 
+// Casino Lock Middleware
+bot.use(async (ctx, next) => {
+    const userId = ctx.from?.id;
+    if (userId && gameManager.isUserPlaying(userId)) {
+        // Allow harmless commands
+        if (ctx.message?.text?.startsWith('/balance') ||
+            ctx.message?.text?.startsWith('/top') ||
+            ctx.message?.text?.startsWith('/help') ||
+            ctx.message?.text?.startsWith('/start') ||
+            ctx.message?.text?.startsWith('/__debug')) {
+            return next();
+        }
+
+        // Block specific casino intents
+        // Check for Dice
+        if (ctx.message?.dice) {
+             const messages = [
+                 "Вы сейчас играете в покер, нельзя крутить слоты!",
+                 "Сначала закончите партию в покер.",
+                 "Азарт - это хорошо, но давайте по очереди. Покер ждёт.",
+                 "Мультитейблинг с казино запрещён! Вернитесь за стол."
+             ];
+             await ctx.reply(messages[Math.floor(Math.random() * messages.length)], {
+                 reply_to_message_id: ctx.message.message_id
+             });
+             return;
+        }
+
+        // Check for Horse/Redeem commands
+        if (ctx.message?.text && (ctx.message.text.startsWith('/horse') || ctx.message.text.startsWith('/redeem'))) {
+            const messages = [
+                 "Вы сейчас играете в покер!",
+                 "Заберите деньги со стола, чтобы играть здесь.",
+                 "Покерный стол не отпускает?"
+             ];
+             await ctx.reply(messages[Math.floor(Math.random() * messages.length)], {
+                 reply_to_message_id: ctx.message.message_id
+             });
+             return;
+        }
+    }
+    return next();
+});
+
 bot.command("__debug", async (ctx) => {
   await ctx.reply(
     Object.entries({
@@ -49,7 +93,8 @@ bot.command("top", async (ctx) => {
   const usersTop: UserState[] = [];
 
   for await (const user of users) {
-    usersTop.push(user.value);
+    const pokerBalance = gameManager.getUserPokerBalance(parseInt(user.key[user.key.length - 1] as string));
+    usersTop.push({ ...user.value, coins: user.value.coins + pokerBalance });
   }
 
   usersTop.sort((a, b) => b.coins - a.coins);
@@ -68,8 +113,9 @@ bot.command("balance", async (ctx) => {
   if (!id) return;
 
   const user = await getUserStateSafe(ctx);
+  const pokerBalance = gameManager.getUserPokerBalance(id);
 
-  await ctx.reply(locales.yourBalance(user!.coins), {
+  await ctx.reply(locales.yourBalance(user!.coins + pokerBalance), {
     reply_to_message_id: ctx.update.message?.message_id,
     parse_mode: "HTML",
   });
