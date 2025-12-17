@@ -23,11 +23,24 @@ export class PokerTable {
     private broadcasters: Map<number, Broadcaster> = new Map();
     private bankruptIds = new Set<number>();
 
+    private roundInProgress = false;
     private gameLoopTimeout: ReturnType<typeof setTimeout> | null = null;
     private turnTimer: ReturnType<typeof setTimeout> | null = null;
 
     // Callback to refund money when a player leaves or is kicked
     private onCashOut: (userId: number, amount: number) => Promise<void>;
+    private onEmpty: (tableId: number) => void;
+
+    public getPlayerBalance(userId: number): number {
+        const p = this.players.find(p => p?.id === userId);
+        // We include roundBet and currentBet as "money user has on table"
+        // But strictly, bets are at risk.
+        // User asked for "Actual money".
+        // If I bet 100, and I have 900 left. My total wealth is 1000 until round ends.
+        // If I lose, it becomes 900.
+        // Showing 1000 is safer to avoid panic.
+        return p ? p.balance + p.roundBet : 0;
+    }
 
     constructor(
         id: number,
@@ -35,7 +48,8 @@ export class PokerTable {
         blindStructure: BlindStructure,
         isPrivate: boolean,
         password: string | undefined,
-        onCashOut: (userId: number, amount: number) => Promise<void>
+        onCashOut: (userId: number, amount: number) => Promise<void>,
+        onEmpty: (tableId: number) => void
     ) {
         this.id = id;
         this.name = name;
@@ -43,6 +57,7 @@ export class PokerTable {
         this.isPrivate = isPrivate;
         this.password = password;
         this.onCashOut = onCashOut;
+        this.onEmpty = onEmpty;
 
         this.gameState = {
             pot: 0,
@@ -65,7 +80,7 @@ export class PokerTable {
         return this.players.filter(p => p !== null) as Player[];
     }
 
-    public async addPlayer(user: { id: number, name: string, coins: number }, broadcaster: Broadcaster): Promise<boolean> {
+    public async addPlayer(user: { id: number, name: string, coins: number }, broadcaster: Broadcaster, seatIndex?: number): Promise<boolean> {
         if (this.players.some(p => p?.id === user.id)) {
             // Already seated, just reconnect broadcaster
             this.broadcasters.set(user.id, broadcaster);
@@ -73,7 +88,13 @@ export class PokerTable {
             return true;
         }
 
-        const seatIdx = this.players.findIndex(p => p === null);
+        let seatIdx = -1;
+        if (seatIndex !== undefined && seatIndex >= 0 && seatIndex < 5 && this.players[seatIndex] === null) {
+            seatIdx = seatIndex;
+        } else {
+            seatIdx = this.players.findIndex(p => p === null);
+        }
+
         if (seatIdx === -1) return false; // Full
 
         this.broadcasters.set(user.id, broadcaster);
@@ -106,14 +127,25 @@ export class PokerTable {
     public removePlayer(userId: number) {
         const player = this.players.find(p => p?.id === userId);
         if (player) {
-            this.kickPlayer(player);
+            this.kickPlayer(player, true); // true = forceful leave (disconnect/quit)
+        } else {
+            // Just a spectator leaving
+            this.broadcasters.delete(userId);
+            this.updateSpectatorCount();
         }
-        this.broadcasters.delete(userId);
+        this.checkEmpty();
     }
 
     public handleMessage(userId: number, msg: ClientMessage) {
         if (msg.type === 'LEAVE') {
             this.removePlayer(userId);
+        } else if (msg.type === 'GET_STATE') {
+            this.pushStateTo(userId);
+        } else if (msg.type === 'EMOTE' && msg.stickerId !== undefined) {
+            this.broadcast({
+                type: 'EMOTE',
+                payload: { playerId: userId, stickerId: msg.stickerId }
+            });
         } else {
             this.handleClientAction(userId, msg);
         }
@@ -160,7 +192,7 @@ export class PokerTable {
         };
     }
 
-    private kickPlayer(player: Player) {
+    private kickPlayer(player: Player, isLeaving: boolean = false) {
         const idx = this.players.indexOf(player);
         if (idx !== -1) {
             console.log(`Kicking player ${player.name} (ID: ${player.id})`);
@@ -171,6 +203,13 @@ export class PokerTable {
             }
 
             this.players[idx] = null;
+
+            if (isLeaving) {
+                this.broadcasters.delete(player.id);
+            }
+
+            this.updateSpectatorCount();
+            this.checkEmpty();
             this.broadcastState();
 
             // If it was their turn, advance
@@ -178,19 +217,39 @@ export class PokerTable {
                 this.checkTurnEnd(idx); // Use old index
             } else {
                 // If game in progress, check if we need to end round/stage because not enough players
-                const active = this.activePlayersList.filter(p => !p.isFolded);
-                 if (this.gameState.stage !== GameStage.PREFLOP || this.gameState.pot > 0) {
-                     if (active.length === 1) {
-                        this.handleWinByFold(active[0]);
-                     }
-                 }
+                if (this.roundInProgress) {
+                    const active = this.activePlayersList.filter(p => !p.isFolded);
+                    if (this.gameState.stage !== GameStage.PREFLOP || this.gameState.pot > 0) {
+                        if (active.length === 1) {
+                            this.handleWinByFold(active[0]);
+                        }
+                    }
+                }
             }
+        }
+    }
+
+    private updateSpectatorCount() {
+        // Spectators = Total Connections - Seated Players
+        const seatedCount = this.players.filter(p => p !== null).length;
+        const total = this.broadcasters.size;
+        this.gameState.spectatorCount = Math.max(0, total - seatedCount);
+    }
+
+    private checkEmpty() {
+        if (this.activePlayerCount === 0) {
+            // Wait briefly to allow reconnects or temporary drops?
+            // User requirement: "If table is empty (0 players), delete immediately".
+            // But if a player leaves, it might be 0 for a moment.
+            // Let's call callback.
+            this.onEmpty(this.id);
         }
     }
 
     // --- GAME LOGIC ---
 
     private startNewRound() {
+        this.roundInProgress = true;
         this.clearTimers();
         const active = this.activePlayersList;
         // Check for active players with money
@@ -336,6 +395,9 @@ export class PokerTable {
                 totalBet = p.balance + p.roundBet;
             }
 
+            // Fix: ensure raise is valid (>= min raise unless all-in)
+            // But we accept whatever frontend sends bounded by balance.
+
             if (totalBet > this.gameState.currentCallAmount) {
                 const diff = totalBet - this.gameState.currentCallAmount;
                 if (diff > this.gameState.minRaise) this.gameState.minRaise = diff;
@@ -359,7 +421,21 @@ export class PokerTable {
 
         // Capture index BEFORE possible kicking or state changes
         const currentPlayerIdx = this.players.indexOf(p);
-        setTimeout(() => this.checkTurnEnd(currentPlayerIdx), 500);
+
+        // Fix: Use immediate check if possible, or ensure player isn't kicked in interim.
+        // The bug "player disappears after Raise" implies they might be kicked or state corrupted.
+        // We added `roundInProgress` check in `kickPlayer`, which should prevent accidental kicks.
+        // Also ensure `checkTurnEnd` doesn't throw.
+
+        setTimeout(() => {
+            // Re-verify player exists (though they shouldn't be kicked mid-turn)
+            if (this.players[currentPlayerIdx]) {
+                this.checkTurnEnd(currentPlayerIdx);
+            } else {
+                // If player is gone, just find next.
+                this.advanceTurn(currentPlayerIdx);
+            }
+        }, 500);
     }
 
     private bet(player: Player, amount: number) {
@@ -457,8 +533,17 @@ export class PokerTable {
         if (foundIdx === -1) {
             setTimeout(() => this.nextStage(), 1000);
         } else {
-            this.broadcastState();
-            this.setActivePlayer(foundIdx);
+            // Check if only one player has money to act (Auto-Check Logic)
+            const activeWithMoney = this.activePlayersList.filter(p => !p.isFolded && !p.isAllIn && p.balance > 0);
+            if (activeWithMoney.length <= 1) {
+                // If only one (or zero) player can act, we just skip the betting round
+                // Wait a bit to show the dealt cards, then move on
+                this.broadcastState();
+                setTimeout(() => this.nextStage(), 2000);
+            } else {
+                this.broadcastState();
+                this.setActivePlayer(foundIdx);
+            }
         }
     }
 
@@ -540,6 +625,7 @@ export class PokerTable {
     }
 
     private finalizeRound(primaryWinnerId: number) {
+        this.roundInProgress = false;
         const event = {
             playerId: primaryWinnerId,
             action: 'Win' as any

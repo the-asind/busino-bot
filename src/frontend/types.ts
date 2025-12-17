@@ -89,7 +89,7 @@ export type ServerEventType =
   | 'ERROR';         // Operation failed
 
 export interface ServerMessage {
-  type: ServerEventType;
+  type: ServerEventType | 'EMOTE';
   payload: {
     players?: (Player | null)[]; // Changed to allow nulls for empty seats
     gameState?: GameState;
@@ -98,6 +98,7 @@ export interface ServerMessage {
     playerId?: number;
     amount?: number;
     error?: string;
+    stickerId?: number; // For EMOTE
   };
 }
 

@@ -7,31 +7,37 @@ export class WebSocketService {
     private listeners: MessageHandler[] = [];
     private queue: ClientMessage[] = [];
     private isConnected: boolean = false;
+    private closeTimeout: any = null;
 
     public connect(onMessage: MessageHandler) {
+        // If we were about to close, cancel it
+        if (this.closeTimeout) {
+            clearTimeout(this.closeTimeout);
+            this.closeTimeout = null;
+            console.log('WS: Close cancelled, reusing connection');
+        }
+
         this.listeners.push(onMessage);
 
         if (this.ws) {
-            // Already connected or connecting
-            return () => {
-                this.listeners = this.listeners.filter(cb => cb !== onMessage);
-            };
+            console.log('WS: Reusing existing connection');
+            return () => this.unsubscribe(onMessage);
         }
 
-        // Get Telegram InitData
+        // Reset state
+        this.isConnected = false;
+
         // @ts-ignore
         const initData = window.Telegram?.WebApp?.initData;
         const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-        // Dev: 'ws://localhost:3000/ws' or prod relative
-        // We assume served from same origin
         const host = window.location.host;
         const url = `${protocol}://${host}/ws?initData=${encodeURIComponent(initData)}`;
 
-        console.log('Connecting to WS:', url);
+        console.log('WS: Connecting to', url);
         this.ws = new WebSocket(url);
 
         this.ws.onopen = () => {
-            console.log('WS Open');
+            console.log('WS: Open');
             this.isConnected = true;
             this.flushQueue();
         };
@@ -42,48 +48,77 @@ export class WebSocketService {
                 // console.log('WS RX:', JSON.stringify(msg));
                 this.listeners.forEach(cb => cb(msg));
             } catch (e) {
-                console.error('WS Parse Error', e);
+                console.error('WS: Parse Error', e);
             }
         };
 
-        this.ws.onclose = () => {
-            console.log('WS Close');
+        this.ws.onclose = (e) => {
+            console.log(`WS: Closed (Code: ${e.code})`);
             this.isConnected = false;
             this.ws = null;
-            // Reconnect logic?
-            setTimeout(() => {
-                if(this.listeners.length > 0) this.connect(this.listeners[0]);
-            }, 3000);
+
+            // Only reconnect if we still have active listeners
+            if (this.listeners.length > 0) {
+                console.log('WS: Reconnecting in 3s...');
+                setTimeout(() => {
+                    if (this.listeners.length > 0 && !this.ws) this.connect(this.listeners[0]); // Re-trigger connect logic
+                }, 3000);
+            }
         };
 
         this.ws.onerror = (err) => {
-             console.error('WS Error', err);
+             console.error('WS: Error', err);
         };
 
-        return () => {
-            this.listeners = this.listeners.filter(cb => cb !== onMessage);
-            if (this.listeners.length === 0 && this.ws) {
-                this.ws.close();
-                this.ws = null;
-            }
-        };
+        return () => this.unsubscribe(onMessage);
+    }
+
+    private unsubscribe(handler: MessageHandler) {
+        this.listeners = this.listeners.filter(cb => cb !== handler);
+
+        if (this.listeners.length === 0 && this.ws && !this.closeTimeout) {
+            console.log('WS: No listeners, scheduling close in 1s...');
+            this.closeTimeout = setTimeout(() => {
+                if (this.listeners.length === 0 && this.ws) {
+                    console.log('WS: Closing due to inactivity');
+                    this.isConnected = false;
+                    this.ws.close();
+                    this.ws = null;
+                }
+                this.closeTimeout = null;
+            }, 1000);
+        }
     }
 
     public send(msg: ClientMessage) {
-        if (this.isConnected && this.ws) {
-            this.ws.send(JSON.stringify(msg));
+        if (this.isConnected && this.ws && this.ws.readyState === WebSocket.OPEN) {
+            try {
+                // console.log('WS TX:', msg);
+                this.ws.send(JSON.stringify(msg));
+            } catch (e) {
+                console.error('WS: Send Error', e);
+                this.queue.push(msg);
+            }
         } else {
+            console.log('WS: Queuing message', msg.type);
             this.queue.push(msg);
         }
     }
 
     private flushQueue() {
-        while (this.queue.length > 0 && this.isConnected && this.ws) {
+        while (this.queue.length > 0 && this.isConnected && this.ws && this.ws.readyState === WebSocket.OPEN) {
             const msg = this.queue.shift();
-            if(msg) this.ws.send(JSON.stringify(msg));
+            if(msg) {
+                try {
+                    this.ws.send(JSON.stringify(msg));
+                } catch(e) {
+                    console.error('WS: Flush Error', e);
+                    this.queue.unshift(msg);
+                    break;
+                }
+            }
         }
     }
 }
 
-// Singleton instance
 export const webSocketService = new WebSocketService();
