@@ -229,6 +229,14 @@ export const GameView: React.FC<GameViewProps> = ({ lobbyId, blindStructure, onL
       return indices;
   }, [players, gameState]);
 
+  // Correct highlight logic for Winning Cards at Showdown (based on actual winner)
+  const winningIndices = useMemo(() => {
+      if (gameState?.stage === GameStage.SHOWDOWN && gameState.winningCards) {
+          return gameState.winningCards;
+      }
+      return heroWinningIndices;
+  }, [gameState, heroWinningIndices]);
+
   // Determine the winning hand name to display in CENTER
   const winningHandName = useMemo(() => {
       const winner = players.find(p => p && p.isWinner);
@@ -242,17 +250,7 @@ export const GameView: React.FC<GameViewProps> = ({ lobbyId, blindStructure, onL
   };
 
   const handleJoin = (seatIndex: number) => {
-      // We are already joined in the lobby (as observer or player?)
-      // The current backend `joinLobby` adds player to a seat immediately!
-      // So we don't need `handleJoin` (sit down) button.
-      // `joinLobby` -> `addPlayer`.
-      // So `players` should already contain me.
-
-      // If `addPlayer` failed (full), we get error.
-      // If successful, we are in `players`.
-
-      // So `EmptySeat` click is not needed if we auto-sit.
-      // The backend auto-sits.
+      webSocketService.send({ type: 'JOIN', lobbyId, seatIndex });
   };
 
   const openRaiseSlider = () => {
@@ -354,7 +352,7 @@ export const GameView: React.FC<GameViewProps> = ({ lobbyId, blindStructure, onL
           {gameState.communityCards.map((card, i) => (
              <div key={`${card.rank}-${card.suit}`} className="origin-center animate-deal-board" style={{ animationDelay: `${i * 150}ms` }}>
                 <Card card={card} className="shadow-xl" small={false}
-                      highlight={gameState.stage === GameStage.SHOWDOWN ? gameState.winningCards?.includes(i) : heroWinningIndices.includes(i)} />
+                      highlight={winningIndices.includes(i)} />
              </div>
           ))}
           {[...Array(5 - gameState.communityCards.length)].map((_, i) => (
@@ -478,12 +476,13 @@ const FloatingChip: React.FC<{ from: {x:string, y:string}, to: {x:string, y:stri
 // Component for Empty Seat (Plus Button)
 const EmptySeat: React.FC<{ positionClass: string, onClick: () => void }> = ({ positionClass, onClick }) => {
     return (
-        <div className={`absolute flex flex-col items-center justify-center w-20 ${positionClass} opacity-20 pointer-events-none`}>
+        <div className={`absolute flex flex-col items-center justify-center w-20 ${positionClass} opacity-60 hover:opacity-100 cursor-pointer transition-opacity group`} onClick={onClick}>
             <div
-                className="w-12 h-12 rounded-full border-2 border-dashed border-slate-500 bg-slate-800/50 flex items-center justify-center text-slate-400"
+                className="w-12 h-12 rounded-full border-2 border-dashed border-slate-500 bg-slate-800/50 flex items-center justify-center text-slate-400 group-hover:border-yellow-500 group-hover:text-yellow-500 transition-colors"
             >
-                <span className="text-2xl font-light mb-1"></span>
+                <span className="text-2xl font-light mb-1">+</span>
             </div>
+            <span className="text-[10px] text-slate-500 font-bold mt-1 group-hover:text-yellow-500">СЕСТЬ</span>
         </div>
     );
 };

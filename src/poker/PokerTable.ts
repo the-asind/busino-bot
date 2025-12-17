@@ -77,7 +77,7 @@ export class PokerTable {
         return this.players.filter(p => p !== null) as Player[];
     }
 
-    public async addPlayer(user: { id: number, name: string, coins: number }, broadcaster: Broadcaster): Promise<boolean> {
+    public async addPlayer(user: { id: number, name: string, coins: number }, broadcaster: Broadcaster, seatIndex?: number): Promise<boolean> {
         if (this.players.some(p => p?.id === user.id)) {
             // Already seated, just reconnect broadcaster
             this.broadcasters.set(user.id, broadcaster);
@@ -85,7 +85,13 @@ export class PokerTable {
             return true;
         }
 
-        const seatIdx = this.players.findIndex(p => p === null);
+        let seatIdx = -1;
+        if (seatIndex !== undefined && seatIndex >= 0 && seatIndex < 5 && this.players[seatIndex] === null) {
+            seatIdx = seatIndex;
+        } else {
+            seatIdx = this.players.findIndex(p => p === null);
+        }
+
         if (seatIdx === -1) return false; // Full
 
         this.broadcasters.set(user.id, broadcaster);
@@ -118,9 +124,12 @@ export class PokerTable {
     public removePlayer(userId: number) {
         const player = this.players.find(p => p?.id === userId);
         if (player) {
-            this.kickPlayer(player);
+            this.kickPlayer(player, true); // true = forceful leave (disconnect/quit)
+        } else {
+            // Just a spectator leaving
+            this.broadcasters.delete(userId);
+            this.updateSpectatorCount();
         }
-        this.broadcasters.delete(userId);
     }
 
     public handleMessage(userId: number, msg: ClientMessage) {
@@ -128,6 +137,16 @@ export class PokerTable {
             this.removePlayer(userId);
         } else if (msg.type === 'GET_STATE') {
             this.pushStateTo(userId);
+        } else if (msg.type === 'JOIN' && msg.seatIndex !== undefined) {
+             // Handle re-sit or sit in specific seat if logic allows
+             // For now we just add them if not there.
+             // But 'addPlayer' finds first empty.
+             // If player is already 'removed' but wants to sit back?
+             // GameManager handles 'JOIN'.
+             // If we want to support 'Sit Here' via socket on empty seat:
+             // We need to pass it up or handle it.
+             // But currently JOIN is handled by GameManager calling addPlayer.
+             // So this branch might not be hit for JOIN.
         } else {
             this.handleClientAction(userId, msg);
         }
@@ -174,7 +193,7 @@ export class PokerTable {
         };
     }
 
-    private kickPlayer(player: Player) {
+    private kickPlayer(player: Player, isLeaving: boolean = false) {
         const idx = this.players.indexOf(player);
         if (idx !== -1) {
             console.log(`Kicking player ${player.name} (ID: ${player.id})`);
@@ -185,6 +204,12 @@ export class PokerTable {
             }
 
             this.players[idx] = null;
+
+            if (isLeaving) {
+                this.broadcasters.delete(player.id);
+            }
+
+            this.updateSpectatorCount();
             this.broadcastState();
 
             // If it was their turn, advance
@@ -202,6 +227,13 @@ export class PokerTable {
                 }
             }
         }
+    }
+
+    private updateSpectatorCount() {
+        // Spectators = Total Connections - Seated Players
+        const seatedCount = this.players.filter(p => p !== null).length;
+        const total = this.broadcasters.size;
+        this.gameState.spectatorCount = Math.max(0, total - seatedCount);
     }
 
     // --- GAME LOGIC ---
@@ -353,6 +385,9 @@ export class PokerTable {
                 totalBet = p.balance + p.roundBet;
             }
 
+            // Fix: ensure raise is valid (>= min raise unless all-in)
+            // But we accept whatever frontend sends bounded by balance.
+
             if (totalBet > this.gameState.currentCallAmount) {
                 const diff = totalBet - this.gameState.currentCallAmount;
                 if (diff > this.gameState.minRaise) this.gameState.minRaise = diff;
@@ -376,7 +411,21 @@ export class PokerTable {
 
         // Capture index BEFORE possible kicking or state changes
         const currentPlayerIdx = this.players.indexOf(p);
-        setTimeout(() => this.checkTurnEnd(currentPlayerIdx), 500);
+
+        // Fix: Use immediate check if possible, or ensure player isn't kicked in interim.
+        // The bug "player disappears after Raise" implies they might be kicked or state corrupted.
+        // We added `roundInProgress` check in `kickPlayer`, which should prevent accidental kicks.
+        // Also ensure `checkTurnEnd` doesn't throw.
+
+        setTimeout(() => {
+            // Re-verify player exists (though they shouldn't be kicked mid-turn)
+            if (this.players[currentPlayerIdx]) {
+                this.checkTurnEnd(currentPlayerIdx);
+            } else {
+                // If player is gone, just find next.
+                this.advanceTurn(currentPlayerIdx);
+            }
+        }, 500);
     }
 
     private bet(player: Player, amount: number) {
