@@ -33,7 +33,14 @@ export const LobbyView: React.FC<LobbyViewProps> = ({ onJoinGame }) => {
             // Since we joined, we need to know blinds.
             // If we created, we know. If we joined existing, we look up in lobbies list.
             const lobby = lobbies.find(l => l.id === lobbyId);
-            const createdBlinds = BLIND_STRUCTURES[blindIndex]; // Fallback if creation
+            const createdBlinds = BLIND_STRUCTURES[blindIndex]; // Fallback if creation (might be inaccurate if joined via list)
+
+            // Better fallback: if we joined a lobby not in our list yet (creation race), we might not know blinds.
+            // But usually creation happens, then join.
+            // Actually, we should use the blinds from the Lobby info if available.
+            // If we just created, `blindIndex` state is correct.
+            // If we joined, `lobby` variable has it.
+
             onJoinGame(lobbyId, lobby ? lobby.blinds : createdBlinds);
         } else if (msg.type === 'ERROR') {
             setError(msg.payload.error);
@@ -41,17 +48,21 @@ export const LobbyView: React.FC<LobbyViewProps> = ({ onJoinGame }) => {
         }
     });
 
-    // Request Lobby List
+    // Request Lobby List immediately
     webSocketService.send({ type: 'LIST_LOBBIES' });
+
+    // Poll less frequently to avoid flooding, but enough to see updates
     const interval = setInterval(() => {
          webSocketService.send({ type: 'LIST_LOBBIES' });
-    }, 5000);
+    }, 2000);
 
     return () => {
         clearInterval(interval);
         cleanup();
     };
-  }, [lobbies, blindIndex]);
+    // DEPENDENCY ARRAY EMPTY: Only mount once.
+    // This fixes the infinite reconnection loop caused by `lobbies` update triggering effect.
+  }, []);
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();

@@ -26,12 +26,7 @@ export class GameManager {
     }
 
     public async handleConnection(ws: any) {
-        // Wait for authentication message first?
-        // Or we can expect the first message to be auth or join with auth.
-        // For simplicity, let's assume we handle raw WS messages and expect a specific flow.
-        // BUT, we need to know who the user is.
-        // The standard way is sending initData as a query param or first message.
-        // Let's assume the client sends initData in the URL query params.
+        // No-op for now
     }
 
     public async processMessage(ws: any, message: any, user: { id: number, first_name: string }) {
@@ -40,15 +35,7 @@ export class GameManager {
             const userId = user.id;
 
             if (msg.type === 'LIST_LOBBIES') {
-                const lobbies: Lobby[] = Array.from(this.tables.values()).map(t => ({
-                    id: t.id,
-                    name: t.name,
-                    playersCount: t.activePlayerCount,
-                    maxPlayers: 5,
-                    blinds: t.blindStructure,
-                    isPrivate: t.isPrivate
-                }));
-                ws.send(JSON.stringify({ type: 'LOBBY_LIST', payload: lobbies }));
+                this.sendLobbyList(ws);
                 return;
             }
 
@@ -80,6 +67,18 @@ export class GameManager {
         }
     }
 
+    private sendLobbyList(ws: any) {
+        const lobbies: Lobby[] = Array.from(this.tables.values()).map(t => ({
+            id: t.id,
+            name: t.name,
+            playersCount: t.activePlayerCount,
+            maxPlayers: 5,
+            blinds: t.blindStructure,
+            isPrivate: t.isPrivate
+        }));
+        ws.send(JSON.stringify({ type: 'LOBBY_LIST', payload: lobbies }));
+    }
+
     private createLobbyInternal(name: string, blinds: BlindStructure, isPrivate: boolean, password?: string): number {
         const id = this.nextTableId++;
         const table = new PokerTable(id, name, blinds, isPrivate, password, this.returnFunds.bind(this));
@@ -106,11 +105,6 @@ export class GameManager {
              return;
         }
 
-        // Deduct funds (Buy-in)
-        // For simplicity, let's say buy-in is 100 * Big Blind or user's full balance if less?
-        // Actually, the previous logic was "bring all balance".
-        // Let's check user balance.
-
         const key = [CURRENT_KEY, userId.toString()];
         const userRes = await kv.get<UserState>(key);
 
@@ -125,10 +119,7 @@ export class GameManager {
              return;
         }
 
-        // TRANSACTION: Move funds from KV to Game
-        // We set coins to 0 in KV while they are in game to prevent double spend.
-        // We'll restore it when they leave.
-        // Optimistic locking with atomic check
+        // TRANSACTION
         const res = await kv.atomic()
             .check(userRes)
             .set(key, { ...userRes.value, coins: 0 })
@@ -151,26 +142,29 @@ export class GameManager {
             this.userTableMap.set(userId, lobbyId);
             ws.send(JSON.stringify({ type: 'JOIN_SUCCESS', payload: { lobbyId } }));
         } else {
-            // Refund immediately if join failed (full table)
             await this.returnFunds(userId, coins);
             ws.send(JSON.stringify({ type: 'ERROR', payload: { error: 'Table full' } }));
         }
     }
 
     public handleDisconnect(userId: number) {
-        // If user disconnects, we might want to keep them at the table for a bit (timeout),
-        // or remove them immediately.
-        // The PokerTable handles timeouts.
-        // If the socket closes, we just lose the broadcaster.
-        // But the PokerTable logic will eventually kick them on timeout.
-
-        // However, if we want to support reconnect, we shouldn't remove them here.
-        // But if they just closed the app, they expect to leave.
-        // Let's rely on the PokerTable's `removePlayer` which is called explicitly by LEAVE
-        // or by timeout.
-        // If connection drops, we do nothing. The player will timeout in game logic if they don't reconnect.
-        // But wait, if they reconnect, they get a new WS.
-        // addPlayer handles reconnect if ID matches.
+        // If user disconnects, we just remove them from table mapping if they were kicked/left
+        // But here we rely on PokerTable's logic.
+        // However, if the user disconnects, PokerTable detects timeout.
+        // If we want instant removal on socket close:
+        const tableId = this.userTableMap.get(userId);
+        if (tableId) {
+            const table = this.tables.get(tableId);
+            if (table) {
+                table.removePlayer(userId);
+                // Clean up empty dynamic tables
+                if (tableId > 2 && table.activePlayerCount === 0) { // Keep first 2 tables
+                    console.log(`Destroying empty table ${tableId}`);
+                    this.tables.delete(tableId);
+                }
+            }
+            this.userTableMap.delete(userId);
+        }
     }
 
     private async returnFunds(userId: number, amount: number) {
@@ -179,7 +173,6 @@ export class GameManager {
         while (retries > 0) {
             const userRes = await kv.get<UserState>(key);
             if (!userRes.value) {
-                // Should not happen
                 console.error(`User ${userId} not found for refund! Lost ${amount}`);
                 return;
             }
@@ -192,6 +185,10 @@ export class GameManager {
 
             if (res.ok) {
                 this.userTableMap.delete(userId);
+
+                // Check for empty table cleanup here too if player left properly
+                // But we don't know table ID here easily unless passed.
+                // handleDisconnect handles it.
                 return;
             }
             retries--;
