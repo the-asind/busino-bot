@@ -69,7 +69,7 @@ export const PlayerSeat: React.FC<PlayerSeatProps> = ({ player, positionClass, s
 
       {/* Cards */}
       {!player.isFolded && player.cards && (
-        <div className={`relative flex -space-x-4 mb-1 z-10 transition-transform duration-300 ${player.isTurn ? 'translate-y-1 scale-105' : ''} ${flyInClass}`}>
+        <div className={`relative flex -space-x-1 mb-1 z-10 transition-transform duration-300 ${player.isTurn ? 'translate-y-1 scale-105' : ''} ${flyInClass}`}>
             <Card
               card={showFace ? player.cards[0] : undefined}
               small={true}

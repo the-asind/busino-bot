@@ -20,9 +20,7 @@ export class GameManager {
     private userTableMap: Map<number, number> = new Map(); // userId -> tableId
 
     constructor() {
-        // Create some default lobbies
-        this.createLobbyInternal('Casual Table 1', BLIND_STRUCTURES[0], false);
-        this.createLobbyInternal('High Rollers', BLIND_STRUCTURES[4], false);
+        // No default lobbies
     }
 
     public async handleConnection(ws: any) {
@@ -158,7 +156,7 @@ export class GameManager {
             if (table) {
                 table.removePlayer(userId);
                 // Clean up empty dynamic tables
-                if (tableId > 2 && table.activePlayerCount === 0) { // Keep first 2 tables
+                if (table.activePlayerCount === 0) {
                     console.log(`Destroying empty table ${tableId}`);
                     this.tables.delete(tableId);
                 }

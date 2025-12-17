@@ -23,6 +23,7 @@ export class PokerTable {
     private broadcasters: Map<number, Broadcaster> = new Map();
     private bankruptIds = new Set<number>();
 
+    private roundInProgress = false;
     private gameLoopTimeout: ReturnType<typeof setTimeout> | null = null;
     private turnTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -180,12 +181,14 @@ export class PokerTable {
                 this.checkTurnEnd(idx); // Use old index
             } else {
                 // If game in progress, check if we need to end round/stage because not enough players
-                const active = this.activePlayersList.filter(p => !p.isFolded);
-                 if (this.gameState.stage !== GameStage.PREFLOP || this.gameState.pot > 0) {
-                     if (active.length === 1) {
-                        this.handleWinByFold(active[0]);
-                     }
-                 }
+                if (this.roundInProgress) {
+                    const active = this.activePlayersList.filter(p => !p.isFolded);
+                    if (this.gameState.stage !== GameStage.PREFLOP || this.gameState.pot > 0) {
+                        if (active.length === 1) {
+                            this.handleWinByFold(active[0]);
+                        }
+                    }
+                }
             }
         }
     }
@@ -193,6 +196,7 @@ export class PokerTable {
     // --- GAME LOGIC ---
 
     private startNewRound() {
+        this.roundInProgress = true;
         this.clearTimers();
         const active = this.activePlayersList;
         // Check for active players with money
@@ -459,8 +463,17 @@ export class PokerTable {
         if (foundIdx === -1) {
             setTimeout(() => this.nextStage(), 1000);
         } else {
-            this.broadcastState();
-            this.setActivePlayer(foundIdx);
+            // Check if only one player has money to act (Auto-Check Logic)
+            const activeWithMoney = this.activePlayersList.filter(p => !p.isFolded && !p.isAllIn && p.balance > 0);
+            if (activeWithMoney.length <= 1) {
+                // If only one (or zero) player can act, we just skip the betting round
+                // Wait a bit to show the dealt cards, then move on
+                this.broadcastState();
+                setTimeout(() => this.nextStage(), 2000);
+            } else {
+                this.broadcastState();
+                this.setActivePlayer(foundIdx);
+            }
         }
     }
 
@@ -542,6 +555,7 @@ export class PokerTable {
     }
 
     private finalizeRound(primaryWinnerId: number) {
+        this.roundInProgress = false;
         const event = {
             playerId: primaryWinnerId,
             action: 'Win' as any
