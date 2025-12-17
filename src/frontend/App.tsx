@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { LobbyView } from './views/LobbyView';
 import { GameView } from './views/GameView';
 import { BlindStructure } from './types';
+import { preloadAssets } from './utils/AssetLoader';
 
 // Declare Telegram WebApp type globally
 declare global {
@@ -41,9 +42,9 @@ const App: React.FC = () => {
       window.Telegram.WebApp.ready();
       window.Telegram.WebApp.expand();
       window.Telegram.WebApp.enableClosingConfirmation();
-
-      // Theme matching could happen here
     }
+    // Preload Assets
+    preloadAssets();
   }, []);
 
   const handleJoinGame = (lobbyId: number, blinds: BlindStructure) => {

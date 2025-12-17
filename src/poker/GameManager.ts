@@ -80,7 +80,18 @@ export class GameManager {
 
     private createLobbyInternal(name: string, blinds: BlindStructure, isPrivate: boolean, password?: string): number {
         const id = this.nextTableId++;
-        const table = new PokerTable(id, name, blinds, isPrivate, password, this.returnFunds.bind(this));
+        const table = new PokerTable(
+            id,
+            name,
+            blinds,
+            isPrivate,
+            password,
+            this.returnFunds.bind(this),
+            (tableId) => {
+                console.log(`Table ${tableId} is empty. Deleting...`);
+                this.tables.delete(tableId);
+            }
+        );
         this.tables.set(id, table);
         return id;
     }

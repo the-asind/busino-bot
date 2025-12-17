@@ -29,6 +29,7 @@ export class PokerTable {
 
     // Callback to refund money when a player leaves or is kicked
     private onCashOut: (userId: number, amount: number) => Promise<void>;
+    private onEmpty: (tableId: number) => void;
 
     public getPlayerBalance(userId: number): number {
         const p = this.players.find(p => p?.id === userId);
@@ -47,7 +48,8 @@ export class PokerTable {
         blindStructure: BlindStructure,
         isPrivate: boolean,
         password: string | undefined,
-        onCashOut: (userId: number, amount: number) => Promise<void>
+        onCashOut: (userId: number, amount: number) => Promise<void>,
+        onEmpty: (tableId: number) => void
     ) {
         this.id = id;
         this.name = name;
@@ -55,6 +57,7 @@ export class PokerTable {
         this.isPrivate = isPrivate;
         this.password = password;
         this.onCashOut = onCashOut;
+        this.onEmpty = onEmpty;
 
         this.gameState = {
             pot: 0,
@@ -130,6 +133,7 @@ export class PokerTable {
             this.broadcasters.delete(userId);
             this.updateSpectatorCount();
         }
+        this.checkEmpty();
     }
 
     public handleMessage(userId: number, msg: ClientMessage) {
@@ -205,6 +209,7 @@ export class PokerTable {
             }
 
             this.updateSpectatorCount();
+            this.checkEmpty();
             this.broadcastState();
 
             // If it was their turn, advance
@@ -229,6 +234,16 @@ export class PokerTable {
         const seatedCount = this.players.filter(p => p !== null).length;
         const total = this.broadcasters.size;
         this.gameState.spectatorCount = Math.max(0, total - seatedCount);
+    }
+
+    private checkEmpty() {
+        if (this.activePlayerCount === 0) {
+            // Wait briefly to allow reconnects or temporary drops?
+            // User requirement: "If table is empty (0 players), delete immediately".
+            // But if a player leaves, it might be 0 for a moment.
+            // Let's call callback.
+            this.onEmpty(this.id);
+        }
     }
 
     // --- GAME LOGIC ---

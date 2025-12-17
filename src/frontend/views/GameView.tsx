@@ -425,6 +425,8 @@ export const GameView: React.FC<GameViewProps> = ({ lobbyId, blindStructure, onL
       {/* Players */}
       {players.map((p, idx) => {
           if (!p) {
+               // Only show empty seat if I am NOT seated
+               if (myPlayer) return null;
                return <EmptySeat key={`empty-${idx}`} positionClass={getPositionClass(idx)} onClick={() => handleJoin(idx)} />;
           }
 
