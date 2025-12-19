@@ -252,6 +252,11 @@ export const GameView: React.FC<GameViewProps> = ({ lobbyId, blindStructure, onL
       if (gameState?.stage === GameStage.SHOWDOWN && gameState.winningCards) {
           return gameState.winningCards;
       }
+      // If it is Showdown but we have no winningCards (e.g. backend hasn't sent them or no winner yet),
+      // we SHOULD NOT show hero hints.
+      if (gameState?.stage === GameStage.SHOWDOWN) {
+          return [];
+      }
       return heroWinningIndices;
   }, [gameState, heroWinningIndices]);
 
@@ -448,6 +453,8 @@ export const GameView: React.FC<GameViewProps> = ({ lobbyId, blindStructure, onL
               }
           }
 
+          const isMe = !!p.cards && gameState.stage !== GameStage.SHOWDOWN;
+
           return (
             <PlayerSeat
                 key={p.id}
@@ -457,6 +464,7 @@ export const GameView: React.FC<GameViewProps> = ({ lobbyId, blindStructure, onL
                 shouldReveal={!!p.cards}
                 isDealing={isDealing}
                 highlightCards={highlightHoleCards}
+                isMe={isMe}
             />
           );
       })}

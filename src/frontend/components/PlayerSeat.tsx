@@ -12,9 +12,10 @@ interface PlayerSeatProps {
   shouldReveal: boolean;
   isDealing?: boolean;
   highlightCards?: boolean[];
+  isMe?: boolean;
 }
 
-export const PlayerSeat: React.FC<PlayerSeatProps> = ({ player, positionClass, seatIndex, shouldReveal, isDealing, highlightCards }) => {
+export const PlayerSeat: React.FC<PlayerSeatProps> = ({ player, positionClass, seatIndex, shouldReveal, isDealing, highlightCards, isMe = false }) => {
 
   const getDealerPosition = (idx: number) => {
     switch(idx) {
@@ -101,21 +102,21 @@ export const PlayerSeat: React.FC<PlayerSeatProps> = ({ player, positionClass, s
             {player.isTurn && <div className="absolute bottom-0 left-0 h-[2px] bg-yellow-400 w-full animate-countdown"></div>}
           </div>
       </div>
-      <TurnTimer isTurn={player.isTurn} />
+      <TurnTimer isTurn={player.isTurn} isMe={isMe} />
       <style>{`@keyframes countdown { from { width: 100%; } to { width: 0%; } } .animate-countdown { animation: countdown 15s linear forwards; }`}</style>
     </div>
   );
 };
 
-const TurnTimer: React.FC<{ isTurn: boolean }> = ({ isTurn }) => {
+const TurnTimer: React.FC<{ isTurn: boolean; isMe: boolean }> = ({ isTurn, isMe }) => {
     useEffect(() => {
         let t: any;
-        if (isTurn) {
+        if (isTurn && isMe) {
             t = setTimeout(() => {
                 playTurnAlert();
             }, 7500); // 15000 / 2
         }
         return () => { if(t) clearTimeout(t); };
-    }, [isTurn]);
+    }, [isTurn, isMe]);
     return null;
 }

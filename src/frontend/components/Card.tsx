@@ -43,15 +43,18 @@ export const Card: React.FC<CardProps> = ({ card, className = '', small = false,
   const isRed = card.suit === Suit.HEARTS || card.suit === Suit.DIAMONDS;
   const colorClass = isRed ? 'text-red-600' : 'text-slate-900';
 
-  // Logic to show a nice center pip or rank for face cards
   const isFace = [Rank.JACK, Rank.QUEEN, Rank.KING, Rank.ACE].includes(card.rank);
 
   return (
     <div className={`relative bg-white shadow-sm flex flex-col justify-between p-0.5 md:p-1 select-none border border-slate-300 ${dimensions} ${className} ${highlightClass}`}>
 
-      {/* Top Left Corner */}
-      <div className={`flex flex-col items-center leading-none ${colorClass}`}>
+      {/* Top Left: Rank */}
+      <div className={`absolute top-0.5 left-0.5 md:top-1 md:left-1 flex flex-col items-center leading-none ${colorClass}`}>
         <span className={`font-bold tracking-tighter ${rankSize}`}>{card.rank}</span>
+      </div>
+
+      {/* Top Right: Suit */}
+      <div className={`absolute top-0.5 right-0.5 md:top-1 md:right-1 flex flex-col items-center leading-none ${colorClass}`}>
         <span className={suitSize}>{card.suit}</span>
       </div>
 
@@ -59,19 +62,23 @@ export const Card: React.FC<CardProps> = ({ card, className = '', small = false,
       <div className={`absolute inset-0 flex items-center justify-center pointer-events-none ${colorClass}`}>
          {isFace ? (
              <span className={`${centerSize} font-serif opacity-30 font-black`}>
-                 {card.rank === '10' ? card.suit : card.rank}
+                 {card.rank}
              </span>
          ) : (
-             <span className={`${centerSize}`}>
+             <span className={`${centerSize} opacity-30`}>
                  {card.suit}
              </span>
          )}
       </div>
 
-      {/* Bottom Right Corner (Rotated) */}
-      <div className={`flex flex-col items-center leading-none transform rotate-180 ${colorClass}`}>
-        <span className={`font-bold tracking-tighter ${rankSize}`}>{card.rank}</span>
+      {/* Bottom Left: Suit (Rotated 180) */}
+      <div className={`absolute bottom-0.5 left-0.5 md:bottom-1 md:left-1 flex flex-col items-center leading-none transform rotate-180 ${colorClass}`}>
         <span className={suitSize}>{card.suit}</span>
+      </div>
+
+      {/* Bottom Right: Rank (Rotated 180) */}
+      <div className={`absolute bottom-0.5 right-0.5 md:bottom-1 md:right-1 flex flex-col items-center leading-none transform rotate-180 ${colorClass}`}>
+        <span className={`font-bold tracking-tighter ${rankSize}`}>{card.rank}</span>
       </div>
     </div>
   );

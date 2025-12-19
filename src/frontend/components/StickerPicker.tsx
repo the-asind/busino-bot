@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 
 interface StickerPickerProps {
     onSelect: (stickerId: number) => void;
@@ -6,34 +6,8 @@ interface StickerPickerProps {
 }
 
 export const StickerPicker: React.FC<StickerPickerProps> = ({ onSelect, onClose }) => {
-    const [stickers, setStickers] = useState<number[]>([]);
-
-    useEffect(() => {
-        // Sequential scanning logic
-        // We try to fetch 0.webp, 1.webp, etc.
-        // Since we can't directory list, we chain requests.
-
-        let active = true;
-        const found: number[] = [];
-
-        const checkSticker = async (idx: number) => {
-            if (!active) return;
-            try {
-                const res = await fetch(`/app/assets/stickers/${idx}.webp`, { method: 'HEAD' });
-                if (res.ok) {
-                    found.push(idx);
-                    setStickers([...found]);
-                    checkSticker(idx + 1);
-                }
-            } catch (e) {
-                // Stop scanning
-            }
-        };
-
-        checkSticker(0);
-
-        return () => { active = false; };
-    }, []);
+    // Hardcoded range 0-25
+    const stickers = Array.from({ length: 26 }, (_, i) => i);
 
     return (
         <div className="absolute bottom-20 left-4 z-[100] bg-slate-800 border border-slate-600 p-3 rounded-xl shadow-2xl animate-fade-in w-64">
@@ -51,7 +25,6 @@ export const StickerPicker: React.FC<StickerPickerProps> = ({ onSelect, onClose 
                         <img src={`/app/assets/stickers/${id}.webp`} alt={`Sticker ${id}`} className="w-12 h-12 object-contain" />
                     </button>
                 ))}
-                {stickers.length === 0 && <div className="col-span-4 text-center text-slate-500 text-xs">Загрузка...</div>}
             </div>
         </div>
     );
