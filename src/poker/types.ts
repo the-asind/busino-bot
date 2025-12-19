@@ -74,14 +74,14 @@ export interface Lobby {
 export type ServerMessage =
     | { type: 'SNAPSHOT', payload: { players: (Player | null)[], gameState: GameState } }
     | { type: 'GAME_STAGE', payload: { stage: string } }
-    | { type: 'PLAYER_ACTION', payload: { playerId: number, action: string, amount?: number } }
+    | { type: 'PLAYER_ACTION', payload: { playerId: number, action: string, amount?: number, cards?: [CardData, CardData] } }
     | { type: 'ERROR', payload: { error: string } }
     | { type: 'LOBBY_LIST', payload: Lobby[] }
     | { type: 'JOIN_SUCCESS', payload: { lobbyId: number } }
     | { type: 'EMOTE', payload: { playerId: number, stickerId: number } };
 
 export type ClientMessage =
-    | { type: 'JOIN', lobbyId: number, password?: string }
+    | { type: 'JOIN', lobbyId: number, password?: string, seatIndex?: number, avatarUrl?: string }
     | { type: 'CREATE', name: string, blindsIndex: number, password?: string }
     | { type: 'LEAVE' }
     | { type: 'FOLD' }
@@ -90,4 +90,5 @@ export type ClientMessage =
     | { type: 'RAISE', amount: number }
     | { type: 'LIST_LOBBIES' }
     | { type: 'GET_STATE' }
-    | { type: 'EMOTE', stickerId: number };
+    | { type: 'EMOTE', stickerId: number }
+    | { type: 'SHOW_CARDS' };

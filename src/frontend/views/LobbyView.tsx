@@ -42,7 +42,8 @@ export const LobbyView: React.FC<LobbyViewProps> = ({ onJoinGame, userAvatar }) 
             // If we just created, `blindIndex` state is correct.
             // If we joined, `lobby` variable has it.
 
-            onJoinGame(lobbyId, lobby ? lobby.blinds : createdBlinds);
+            // Ensure we use the exact structure from the lobby if available
+            onJoinGame(lobbyId, lobby ? lobby.blinds : BLIND_STRUCTURES[blindIndex]);
         } else if (msg.type === 'ERROR') {
             setError(msg.payload.error);
             setTimeout(() => setError(null), 3000);

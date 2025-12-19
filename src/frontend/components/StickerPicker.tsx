@@ -10,22 +10,24 @@ export const StickerPicker: React.FC<StickerPickerProps> = ({ onSelect, onClose 
     const stickers = Array.from({ length: 26 }, (_, i) => i);
 
     return (
-        <div className="absolute bottom-20 left-4 z-[100] bg-slate-800 border border-slate-600 p-3 rounded-xl shadow-2xl animate-fade-in w-64">
-            <div className="flex justify-between items-center mb-2">
-                <span className="text-white text-xs font-bold uppercase">Стикеры</span>
-                <button onClick={onClose} className="text-slate-400 hover:text-white">✕</button>
+        <>
+            {/* Click Outside Overlay */}
+            <div className="fixed inset-0 z-[99]" onClick={onClose}></div>
+
+            {/* Picker Content */}
+            <div className="absolute bottom-0 left-0 right-0 z-[100] bg-slate-900/95 border-t border-slate-700 p-4 rounded-t-2xl shadow-2xl animate-slide-up backdrop-blur-md w-full">
+                <div className="grid grid-cols-5 md:grid-cols-8 gap-3 max-h-60 overflow-y-auto custom-scrollbar pb-safe">
+                    {stickers.map(id => (
+                        <button
+                            key={id}
+                            onClick={() => onSelect(id)}
+                            className="aspect-square hover:bg-slate-700/50 rounded-xl transition-all active:scale-90 flex items-center justify-center"
+                        >
+                            <img src={`/app/assets/stickers/${id}.webp`} alt={`Sticker ${id}`} className="w-full h-full object-contain drop-shadow-md" />
+                        </button>
+                    ))}
+                </div>
             </div>
-            <div className="grid grid-cols-4 gap-2 max-h-60 overflow-y-auto custom-scrollbar">
-                {stickers.map(id => (
-                    <button
-                        key={id}
-                        onClick={() => onSelect(id)}
-                        className="hover:bg-slate-700 p-1 rounded transition-colors"
-                    >
-                        <img src={`/app/assets/stickers/${id}.webp`} alt={`Sticker ${id}`} className="w-12 h-12 object-contain" />
-                    </button>
-                ))}
-            </div>
-        </div>
+        </>
     );
 };

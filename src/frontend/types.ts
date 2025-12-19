@@ -99,11 +99,13 @@ export interface ServerMessage {
     amount?: number;
     error?: string;
     stickerId?: number; // For EMOTE
+    cards?: [CardData, CardData];
   };
 }
 
 export interface PlayerActionEvent {
   playerId: number;
-  action: 'Fold' | 'Check' | 'Call' | 'Raise' | 'Win';
+  action: 'Fold' | 'Check' | 'Call' | 'Raise' | 'Win' | 'ShowCards';
   amount?: number;
+  cards?: [CardData, CardData];
 }

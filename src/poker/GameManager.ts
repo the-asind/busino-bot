@@ -47,7 +47,7 @@ export class GameManager {
             }
 
             if (msg.type === 'JOIN') {
-                await this.joinLobby(ws, userId, user.first_name, msg.lobbyId, msg.password, msg.seatIndex);
+                await this.joinLobby(ws, userId, user.first_name, msg.lobbyId, msg.password, msg.seatIndex, msg.avatarUrl);
                 return;
             }
 
@@ -96,7 +96,7 @@ export class GameManager {
         return id;
     }
 
-    private async joinLobby(ws: any, userId: number, userName: string, lobbyId: number, password?: string, seatIndex?: number) {
+    private async joinLobby(ws: any, userId: number, userName: string, lobbyId: number, password?: string, seatIndex?: number, avatarUrl?: string) {
         const table = this.tables.get(lobbyId);
         if (!table) {
             ws.send(JSON.stringify({ type: 'ERROR', payload: { error: 'Lobby not found' } }));
@@ -146,7 +146,7 @@ export class GameManager {
             }
         };
 
-        const joined = await table.addPlayer({ id: userId, name: userName, coins: coins }, broadcaster, seatIndex);
+        const joined = await table.addPlayer({ id: userId, name: userName, coins: coins, avatarUrl }, broadcaster, seatIndex);
 
         if (joined) {
             this.userTableMap.set(userId, lobbyId);

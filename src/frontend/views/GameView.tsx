@@ -269,6 +269,10 @@ export const GameView: React.FC<GameViewProps> = ({ lobbyId, blindStructure, onL
   }, [players]);
 
   const handleAction = (type: string, amount: number = 0) => {
+      if (type === 'ShowCards') {
+          webSocketService.send({ type: 'SHOW_CARDS' });
+          return;
+      }
       const actionTypeMap: Record<string, any> = { 'Fold': 'FOLD', 'Check': 'CHECK', 'Call': 'CALL', 'Raise': 'RAISE' };
       webSocketService.send({ type: actionTypeMap[type], amount });
       if (type === 'Raise') setShowRaiseSlider(false);
@@ -313,6 +317,13 @@ export const GameView: React.FC<GameViewProps> = ({ lobbyId, blindStructure, onL
 
   const maxRaiseAmount = myPlayer ? myPlayer.balance + myPlayer.roundBet : 0;
   const minRaiseAmount = gameState.currentCallAmount + gameState.minRaise;
+
+  // Logic for Show Cards Button
+  const canShowCards = !!(
+      myPlayer &&
+      myPlayer.isWinner &&
+      gameState.stage !== GameStage.SHOWDOWN
+  );
 
   return (
     <div className="relative w-full h-full min-h-screen bg-[#1b3a2f] overflow-hidden flex flex-col font-sans">
@@ -430,21 +441,36 @@ export const GameView: React.FC<GameViewProps> = ({ lobbyId, blindStructure, onL
           }
 
           // Generate avatar if missing
-          if (!p.avatarUrl) {
+          if (!p.avatarUrl || p.avatarUrl.includes('picsum.photos')) {
               p.avatarUrl = generateAvatar(p.name);
           }
 
           // Calculate hole card highlights
+          // Logic:
+          // 1. If Game in Progress (not Showdown): Highlight HERO's best hand components on the board (via winningIndices) AND Hero's hole cards if they are part of it.
+          // 2. If SHOWDOWN:
+          //    - If p is WINNER: Highlight their winning combo cards.
+          //    - If p is LOSER: NO highlights on hole cards.
+
           let highlightHoleCards: boolean[] | undefined;
+
           if (p.cards && !p.isFolded) {
-              if (gameState.stage !== GameStage.SHOWDOWN) {
-                  // Only for me? Yes, because others cards are null
-                  const ev = evaluateHand(p.cards, gameState.communityCards);
-                  highlightHoleCards = p.cards.map(c =>
-                      ev.handCards.some(hc => hc.suit === c.suit && hc.rank === c.rank)
-                  );
-              }
-              else if (gameState.stage === GameStage.SHOWDOWN && p.isWinner) {
+              if (gameState.stage === GameStage.SHOWDOWN) {
+                  // SHOWDOWN: Only highlight if this player is a winner and we have winningCards calculated
+                  if (p.isWinner && gameState.winningCards) {
+                       const ev = evaluateHand(p.cards, gameState.communityCards);
+                       // We must match exactly the cards that formed the winning hand
+                       highlightHoleCards = p.cards.map(c =>
+                           ev.handCards.some(hc => hc.suit === c.suit && hc.rank === c.rank)
+                       );
+                  } else {
+                      // Losers get no highlights
+                      highlightHoleCards = [false, false];
+                  }
+              } else {
+                  // NOT SHOWDOWN: Highlight hero's best hand potential
+                  // "isMe" check is implicit because p.cards is null for others usually
+                  // But we should be strict.
                   const ev = evaluateHand(p.cards, gameState.communityCards);
                   highlightHoleCards = p.cards.map(c =>
                       ev.handCards.some(hc => hc.suit === c.suit && hc.rank === c.rank)
@@ -452,7 +478,24 @@ export const GameView: React.FC<GameViewProps> = ({ lobbyId, blindStructure, onL
               }
           }
 
-          const isMe = !!p.cards && gameState.stage !== GameStage.SHOWDOWN;
+          // Fix isMe logic: Rely on ID if available, otherwise heuristic.
+          // p.cards is visible implies "Me" or "Showdown".
+          // If Showdown, everyone has cards.
+          // We need a better isMe check.
+          // However, we don't have myId in GameView props.
+          // We can infer myId from the player who had cards BEFORE showdown?
+          // Or just use the fact that `p.isTurn` works for timer.
+          // For sticker picker, we need to know who I am.
+          // Hack: we assume the user is the one with cards when stage != Showdown.
+          // But during showdown, this logic fails.
+          // Let's rely on a heuristic: The player at index 0 (if rotated)?
+          // We aren't rotating yet.
+          // Let's use `userAvatar` (from props) to match `p.avatarUrl`?
+          // No, avatar might be generated.
+          // Let's use the `myPlayer` found earlier (who has cards).
+          // If `myPlayer` exists, use its ID.
+
+          const isMe = myPlayer ? p.id === myPlayer.id : false;
 
           return (
             <PlayerSeat
@@ -509,6 +552,7 @@ export const GameView: React.FC<GameViewProps> = ({ lobbyId, blindStructure, onL
         myRoundBet={myPlayer?.roundBet || 0}
         minRaise={gameState.minRaise}
         balance={myPlayer?.balance || 0}
+        canShowCards={canShowCards}
         onRequestRaise={openRaiseSlider}
         onAction={handleAction}
        />
