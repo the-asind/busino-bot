@@ -47,6 +47,7 @@ export const GameView: React.FC<GameViewProps> = ({ lobbyId, blindStructure, onL
   // Animation State
   const [floatingChips, setFloatingChips] = useState<FloatingChipData[]>([]);
   const [activeStickers, setActiveStickers] = useState<{id: string, playerId: number, stickerId: number}[]>([]);
+  const [hasShownCards, setHasShownCards] = useState(false);
 
   const playersRef = useRef<(Player | null)[]>([]);
 
@@ -271,8 +272,10 @@ export const GameView: React.FC<GameViewProps> = ({ lobbyId, blindStructure, onL
   const handleAction = (type: string, amount: number = 0) => {
       if (type === 'ShowCards') {
           webSocketService.send({ type: 'SHOW_CARDS' });
+          setHasShownCards(true);
           return;
       }
+      setHasShownCards(false); // Reset on any other action (new round starts)
       const actionTypeMap: Record<string, any> = { 'Fold': 'FOLD', 'Check': 'CHECK', 'Call': 'CALL', 'Raise': 'RAISE' };
       webSocketService.send({ type: actionTypeMap[type], amount });
       if (type === 'Raise') setShowRaiseSlider(false);
@@ -322,7 +325,8 @@ export const GameView: React.FC<GameViewProps> = ({ lobbyId, blindStructure, onL
   const canShowCards = !!(
       myPlayer &&
       myPlayer.isWinner &&
-      gameState.stage !== GameStage.SHOWDOWN
+      gameState.stage !== GameStage.SHOWDOWN &&
+      !hasShownCards
   );
 
   return (
@@ -339,7 +343,7 @@ export const GameView: React.FC<GameViewProps> = ({ lobbyId, blindStructure, onL
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-green-800 via-[#1b3a2f] to-[#0f1f1a] opacity-100 z-0"></div>
       <div className="absolute top-[42%] left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[85%] md:w-[60%] aspect-[2/3.5] rounded-[100px] border-[14px] border-[#162922] shadow-[0_0_50px_rgba(0,0,0,0.5)] bg-[#2c5443] z-0">
         <div className="absolute inset-4 border-2 border-white/5 rounded-[80px]"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-white/10 font-bold text-2xl tracking-widest pointer-events-none select-none">
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 translate-y-12 text-white/10 font-bold text-2xl tracking-widest pointer-events-none select-none">
           {gameState.stage}
         </div>
       </div>
@@ -448,29 +452,28 @@ export const GameView: React.FC<GameViewProps> = ({ lobbyId, blindStructure, onL
           // Calculate hole card highlights
           // Logic:
           // 1. If Game in Progress (not Showdown): Highlight HERO's best hand components on the board (via winningIndices) AND Hero's hole cards if they are part of it.
-          // 2. If SHOWDOWN:
+          // 2. If SHOWDOWN or WINNER DECLARED:
           //    - If p is WINNER: Highlight their winning combo cards.
           //    - If p is LOSER: NO highlights on hole cards.
 
           let highlightHoleCards: boolean[] | undefined;
+          const anyWinner = players.some(pl => pl && pl.isWinner);
 
           if (p.cards && !p.isFolded) {
-              if (gameState.stage === GameStage.SHOWDOWN) {
-                  // SHOWDOWN: Only highlight if this player is a winner and we have winningCards calculated
-                  if (p.isWinner && gameState.winningCards) {
+              if (anyWinner || gameState.stage === GameStage.SHOWDOWN) {
+                  // SHOWDOWN/WINNER: Only highlight if this player is a winner and we have winningCards calculated
+                  if (p.isWinner && gameState.winningCards && gameState.winningCards.length > 0) {
                        const ev = evaluateHand(p.cards, gameState.communityCards);
                        // We must match exactly the cards that formed the winning hand
                        highlightHoleCards = p.cards.map(c =>
                            ev.handCards.some(hc => hc.suit === c.suit && hc.rank === c.rank)
                        );
                   } else {
-                      // Losers get no highlights
+                      // Losers (or winners without combo data e.g. fold) get no highlights
                       highlightHoleCards = [false, false];
                   }
               } else {
-                  // NOT SHOWDOWN: Highlight hero's best hand potential
-                  // "isMe" check is implicit because p.cards is null for others usually
-                  // But we should be strict.
+                  // GAME IN PROGRESS: Highlight hero's best hand potential
                   const ev = evaluateHand(p.cards, gameState.communityCards);
                   highlightHoleCards = p.cards.map(c =>
                       ev.handCards.some(hc => hc.suit === c.suit && hc.rank === c.rank)
