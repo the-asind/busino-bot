@@ -13,9 +13,10 @@ interface PlayerSeatProps {
   isDealing?: boolean;
   highlightCards?: boolean[];
   isMe?: boolean;
+  onAvatarClick?: () => void;
 }
 
-export const PlayerSeat: React.FC<PlayerSeatProps> = ({ player, positionClass, seatIndex, shouldReveal, isDealing, highlightCards, isMe = false }) => {
+export const PlayerSeat: React.FC<PlayerSeatProps> = ({ player, positionClass, seatIndex, shouldReveal, isDealing, highlightCards, isMe = false, onAvatarClick }) => {
 
   const getDealerPosition = (idx: number) => {
     switch(idx) {
@@ -88,8 +89,8 @@ export const PlayerSeat: React.FC<PlayerSeatProps> = ({ player, positionClass, s
       )}
 
       {/* Avatar Container & Timer */}
-      <div className="relative">
-        <div className={`relative w-10 h-10 md:w-12 md:h-12 rounded-full border-[3px] ${player.isWinner ? 'border-yellow-400 shadow-[0_0_20px_rgba(250,204,21,0.8)]' : player.isTurn ? 'border-yellow-400 shadow-[0_0_15px_rgba(250,204,21,0.6)]' : 'border-slate-700'} bg-slate-800 z-20 overflow-hidden transition-all duration-500`}>
+      <div className="relative" onClick={onAvatarClick}>
+        <div className={`relative w-10 h-10 md:w-12 md:h-12 rounded-full border-[3px] ${player.isWinner ? 'border-yellow-400 shadow-[0_0_20px_rgba(250,204,21,0.8)]' : player.isTurn ? 'border-yellow-400 shadow-[0_0_15px_rgba(250,204,21,0.6)]' : 'border-slate-700'} bg-slate-800 z-20 overflow-hidden transition-all duration-500 cursor-pointer`}>
           <img src={player.avatarUrl} alt={player.name} className={`w-full h-full object-cover ${player.balance === 0 && !player.isAllIn ? 'grayscale' : ''}`} />
         </div>
       </div>

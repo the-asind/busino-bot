@@ -24,6 +24,7 @@ declare global {
             first_name: string;
             last_name?: string;
             username?: string;
+            photo_url?: string;
           }
         }
       }
@@ -35,6 +36,7 @@ const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<'lobby' | 'game'>('lobby');
   const [activeLobbyId, setActiveLobbyId] = useState<number | null>(null);
   const [currentBlinds, setCurrentBlinds] = useState<BlindStructure | null>(null);
+  const [userAvatar, setUserAvatar] = useState<string | null>(null);
 
   useEffect(() => {
     // Initialize Telegram WebApp
@@ -42,6 +44,11 @@ const App: React.FC = () => {
       window.Telegram.WebApp.ready();
       window.Telegram.WebApp.expand();
       window.Telegram.WebApp.enableClosingConfirmation();
+
+      const user = window.Telegram.WebApp.initDataUnsafe.user;
+      if (user && user.photo_url) {
+          setUserAvatar(user.photo_url);
+      }
     }
     // Preload Assets
     preloadAssets();
@@ -62,7 +69,7 @@ const App: React.FC = () => {
   return (
     <div className="antialiased text-white h-full min-h-screen">
       {currentView === 'lobby' && (
-        <LobbyView onJoinGame={handleJoinGame} />
+        <LobbyView onJoinGame={handleJoinGame} userAvatar={userAvatar} />
       )}
 
       {currentView === 'game' && activeLobbyId && currentBlinds && (
@@ -70,6 +77,7 @@ const App: React.FC = () => {
           lobbyId={activeLobbyId}
           blindStructure={currentBlinds}
           onLeave={handleLeaveGame}
+          userAvatar={userAvatar}
         />
       )}
     </div>

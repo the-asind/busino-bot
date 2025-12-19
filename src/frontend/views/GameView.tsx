@@ -8,11 +8,13 @@ import { playSound } from '../utils/audio';
 import { evaluateHand } from '../utils/pokerLogic';
 import { webSocketService } from '../services/WebSocketService';
 import { StickerPicker } from '../components/StickerPicker';
+import { generateAvatar } from '../utils/avatar';
 
 interface GameViewProps {
   lobbyId: number;
   blindStructure: BlindStructure;
   onLeave: () => void;
+  userAvatar: string | null;
 }
 
 // --- ANIMATION TYPES & CONSTANTS ---
@@ -273,7 +275,7 @@ export const GameView: React.FC<GameViewProps> = ({ lobbyId, blindStructure, onL
   };
 
   const handleJoin = (seatIndex: number) => {
-      webSocketService.send({ type: 'JOIN', lobbyId, seatIndex });
+      webSocketService.send({ type: 'JOIN', lobbyId, seatIndex, avatarUrl: userAvatar });
   };
 
   const openRaiseSlider = () => {
@@ -366,7 +368,7 @@ export const GameView: React.FC<GameViewProps> = ({ lobbyId, blindStructure, onL
         <div className="flex flex-col items-center">
             <div className="bg-black/30 px-4 py-1 rounded-full backdrop-blur-sm border border-white/5">
                 <span className="text-yellow-500 font-bold text-xs mr-1">БЛАЙНДЫ</span>
-                <span className="text-white font-bold text-xs">{blindStructure.label}</span>
+                <span className="text-white font-bold text-xs">{blindStructure.small}/{blindStructure.big}</span>
             </div>
         </div>
 
@@ -380,14 +382,6 @@ export const GameView: React.FC<GameViewProps> = ({ lobbyId, blindStructure, onL
             )}
         </div>
       </div>
-
-      {/* Emote Button */}
-      <button
-        onClick={() => setShowStickerPicker(!showStickerPicker)}
-        className="absolute top-20 right-2 z-[90] w-10 h-10 bg-slate-800/80 rounded-full flex items-center justify-center border border-slate-600 shadow-lg text-xl hover:bg-slate-700 transition-colors"
-      >
-        😀
-      </button>
 
       {/* Sticker Picker Popup */}
       {showStickerPicker && (
@@ -435,6 +429,11 @@ export const GameView: React.FC<GameViewProps> = ({ lobbyId, blindStructure, onL
                return <EmptySeat key={`empty-${idx}`} positionClass={getPositionClass(idx)} onClick={() => handleJoin(idx)} />;
           }
 
+          // Generate avatar if missing
+          if (!p.avatarUrl) {
+              p.avatarUrl = generateAvatar(p.name);
+          }
+
           // Calculate hole card highlights
           let highlightHoleCards: boolean[] | undefined;
           if (p.cards && !p.isFolded) {
@@ -465,6 +464,9 @@ export const GameView: React.FC<GameViewProps> = ({ lobbyId, blindStructure, onL
                 isDealing={isDealing}
                 highlightCards={highlightHoleCards}
                 isMe={isMe}
+                onAvatarClick={() => {
+                    if (isMe) setShowStickerPicker(!showStickerPicker);
+                }}
             />
           );
       })}

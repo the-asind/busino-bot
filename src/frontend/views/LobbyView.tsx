@@ -5,9 +5,10 @@ import { webSocketService } from '../services/WebSocketService';
 
 interface LobbyViewProps {
   onJoinGame: (lobbyId: number, blinds: BlindStructure) => void;
+  userAvatar: string | null;
 }
 
-export const LobbyView: React.FC<LobbyViewProps> = ({ onJoinGame }) => {
+export const LobbyView: React.FC<LobbyViewProps> = ({ onJoinGame, userAvatar }) => {
   const [activeTab, setActiveTab] = useState<'list' | 'create'>('list');
   const [lobbies, setLobbies] = useState<Lobby[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -78,13 +79,13 @@ export const LobbyView: React.FC<LobbyViewProps> = ({ onJoinGame }) => {
       if (lobby.isPrivate) {
           setJoiningLobbyId(lobby.id);
       } else {
-          webSocketService.send({ type: 'JOIN', lobbyId: lobby.id });
+          webSocketService.send({ type: 'JOIN', lobbyId: lobby.id, avatarUrl: userAvatar });
       }
   };
 
   const submitJoinWithPassword = () => {
       if (joiningLobbyId !== null) {
-          webSocketService.send({ type: 'JOIN', lobbyId: joiningLobbyId, password: joinPassword });
+          webSocketService.send({ type: 'JOIN', lobbyId: joiningLobbyId, password: joinPassword, avatarUrl: userAvatar });
           setJoiningLobbyId(null);
           setJoinPassword('');
       }
