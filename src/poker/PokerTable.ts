@@ -206,6 +206,7 @@ export class PokerTable {
             const shouldShow = this.gameState.stage === GameStage.SHOWDOWN || p.id === forUserId;
             return {
                 ...p,
+                // Ensure avatarUrl is always sent. It's in 'p' already, but being explicit doesn't hurt.
                 cards: shouldShow ? p.cards : null
             };
         });

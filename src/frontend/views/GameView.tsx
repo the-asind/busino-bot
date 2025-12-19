@@ -325,8 +325,7 @@ export const GameView: React.FC<GameViewProps> = ({ lobbyId, blindStructure, onL
   const canShowCards = !!(
       myPlayer &&
       myPlayer.isWinner &&
-      gameState.stage !== GameStage.SHOWDOWN &&
-      !hasShownCards
+      gameState.stage !== GameStage.SHOWDOWN
   );
 
   return (
@@ -556,6 +555,7 @@ export const GameView: React.FC<GameViewProps> = ({ lobbyId, blindStructure, onL
         minRaise={gameState.minRaise}
         balance={myPlayer?.balance || 0}
         canShowCards={canShowCards}
+        showCardsDisabled={hasShownCards}
         onRequestRaise={openRaiseSlider}
         onAction={handleAction}
        />
