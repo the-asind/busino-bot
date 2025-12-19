@@ -28,21 +28,18 @@ export const preloadAssets = async () => {
         }
     });
 
-    // 2. Preload Stickers (0..15 based on `ls` output, but let's try scanning up to 20 dynamically)
-    // Or just fetch all known ones.
+    // 2. Preload Stickers (0..25 hardcoded range)
     const preloadSticker = (idx: number): Promise<void> => {
         return new Promise((resolve) => {
             const img = new Image();
             img.onload = () => resolve();
-            img.onerror = () => resolve(); // Stop chain or just resolve?
-            // If we want to detect end, we handle it in StickerPicker.
-            // Here we just want to cache what exists.
+            img.onerror = () => resolve();
             img.src = `/app/assets/stickers/${idx}.webp`;
         });
     }
 
-    // Parallel load 0-20
-    for(let i=0; i<=20; i++) {
+    // Parallel load 0-25
+    for(let i=0; i<=25; i++) {
         promises.push(preloadSticker(i));
     }
 

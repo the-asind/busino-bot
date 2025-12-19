@@ -36,7 +36,14 @@ const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<'lobby' | 'game'>('lobby');
   const [activeLobbyId, setActiveLobbyId] = useState<number | null>(null);
   const [currentBlinds, setCurrentBlinds] = useState<BlindStructure | null>(null);
-  const [userAvatar, setUserAvatar] = useState<string | null>(null);
+
+  // Initialize avatar immediately if available
+  const [userAvatar, setUserAvatar] = useState<string | null>(() => {
+      if (typeof window !== 'undefined' && window.Telegram?.WebApp?.initDataUnsafe?.user?.photo_url) {
+          return window.Telegram.WebApp.initDataUnsafe.user.photo_url;
+      }
+      return '';
+  });
 
   useEffect(() => {
     // Initialize Telegram WebApp
@@ -44,11 +51,6 @@ const App: React.FC = () => {
       window.Telegram.WebApp.ready();
       window.Telegram.WebApp.expand();
       window.Telegram.WebApp.enableClosingConfirmation();
-
-      const user = window.Telegram.WebApp.initDataUnsafe.user;
-      if (user && user.photo_url) {
-          setUserAvatar(user.photo_url);
-      }
     }
     // Preload Assets
     preloadAssets();
