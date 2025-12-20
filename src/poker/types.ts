@@ -91,5 +91,4 @@ export type ClientMessage =
     | { type: 'RAISE', amount: number }
     | { type: 'LIST_LOBBIES' }
     | { type: 'GET_STATE' }
-    | { type: 'EMOTE', stickerId: number }
-    | { type: 'SHOW_CARDS' };
+    | { type: 'EMOTE', stickerId: number };

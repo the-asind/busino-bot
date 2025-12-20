@@ -147,33 +147,6 @@ export class PokerTable {
                 type: 'EMOTE',
                 payload: { playerId: userId, stickerId: msg.stickerId }
             });
-        } else if (msg.type === 'SHOW_CARDS') {
-            const p = this.players.find(p => p?.id === userId);
-            if (p && p.cards) {
-                // Determine logic: only allow if round ended?
-                // For simplicity, just allow.
-                // We broadcast a SNAPSHOT or specific event?
-                // Let's force card reveal by updating a flag 'isRevealed'?
-                // We don't have 'isRevealed'.
-                // We can broadcast an EMOTE or custom action.
-                // Or just broadcast a modified snapshot where this player's cards are visible to all?
-                // The `createSnapshot` logic hides cards based on `shouldShow`.
-                // Let's add a temporary set of revealed players?
-                // Easier: Send a PLAYER_ACTION 'ShowCards' with payload containing cards?
-                // The frontend currently doesn't handle 'ShowCards' action with card data.
-
-                // Let's implement: Send an EMOTE-like message but with type 'SHOW_CARDS'.
-                this.broadcast({
-                    type: 'PLAYER_ACTION',
-                    payload: { playerId: userId, action: 'ShowCards' as any, amount: 0, cards: p.cards }
-                });
-
-                // Also, we need the frontend to actually SEE the cards.
-                // If we rely on snapshot, we must persist state.
-                // Let's just assume the frontend will use this event to "reveal" locally or we include cards in payload.
-                // But `PLAYER_ACTION` payload in `types.ts` might not have `cards`.
-                // Let's check `types.ts`.
-            }
         } else {
             this.handleClientAction(userId, msg);
         }

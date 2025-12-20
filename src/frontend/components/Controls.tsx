@@ -7,7 +7,6 @@ interface ControlsProps {
   myRoundBet: number; // What I have bet in this round
   minRaise: number;
   balance: number;
-  canShowCards?: boolean;
   onAction: (action: string, amount?: number) => void;
   onRequestRaise: () => void;
 }
@@ -17,7 +16,6 @@ export const Controls: React.FC<ControlsProps> = ({
   isFolded,
   currentCallAmount,
   myRoundBet,
-  canShowCards = false,
   onRequestRaise,
   onAction
 }) => {
@@ -66,24 +64,6 @@ export const Controls: React.FC<ControlsProps> = ({
   }, [isMyTurn, preMove, canCheck, onAction]);
 
   // If folded (or spectator), show nothing
-  // Exception: If I won by others folding, I might have "Show Cards" option.
-  // But isFolded check below prevents seeing it?
-  // "if all except player folded... appear one button SHOW CARDS".
-  // If I won, `isFolded` is false for me.
-
-  if (canShowCards) {
-      return (
-        <div className="fixed bottom-0 left-0 right-0 bg-slate-900/95 border-t border-slate-700 p-3 pb-8 backdrop-blur-md z-50 flex justify-center">
-            <button
-              onClick={() => onAction('ShowCards')}
-              className="w-full max-w-sm bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-xl shadow-lg border-b-4 border-purple-800 active:border-b-0 active:translate-y-1 transition-all"
-            >
-              SHOW CARDS
-            </button>
-        </div>
-      );
-  }
-
   if (isFolded) {
       return null;
   }

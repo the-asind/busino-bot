@@ -47,7 +47,6 @@ export const GameView: React.FC<GameViewProps> = ({ lobbyId, blindStructure, onL
   // Animation State
   const [floatingChips, setFloatingChips] = useState<FloatingChipData[]>([]);
   const [activeStickers, setActiveStickers] = useState<{id: string, playerId: number, stickerId: number}[]>([]);
-  const [hasShownCards, setHasShownCards] = useState(false);
 
   const playersRef = useRef<(Player | null)[]>([]);
 
@@ -270,12 +269,6 @@ export const GameView: React.FC<GameViewProps> = ({ lobbyId, blindStructure, onL
   }, [players]);
 
   const handleAction = (type: string, amount: number = 0) => {
-      if (type === 'ShowCards') {
-          webSocketService.send({ type: 'SHOW_CARDS' });
-          setHasShownCards(true);
-          return;
-      }
-      setHasShownCards(false); // Reset on any other action (new round starts)
       const actionTypeMap: Record<string, any> = { 'Fold': 'FOLD', 'Check': 'CHECK', 'Call': 'CALL', 'Raise': 'RAISE' };
       webSocketService.send({ type: actionTypeMap[type], amount });
       if (type === 'Raise') setShowRaiseSlider(false);
@@ -320,14 +313,6 @@ export const GameView: React.FC<GameViewProps> = ({ lobbyId, blindStructure, onL
 
   const maxRaiseAmount = myPlayer ? myPlayer.balance + myPlayer.roundBet : 0;
   const minRaiseAmount = gameState.currentCallAmount + gameState.minRaise;
-
-  // Logic for Show Cards Button
-  const canShowCards = !!(
-      myPlayer &&
-      myPlayer.isWinner &&
-      gameState.stage !== GameStage.SHOWDOWN &&
-      !hasShownCards
-  );
 
   return (
     <div className="relative w-full h-full min-h-screen bg-[#1b3a2f] overflow-hidden flex flex-col font-sans">
@@ -555,7 +540,6 @@ export const GameView: React.FC<GameViewProps> = ({ lobbyId, blindStructure, onL
         myRoundBet={myPlayer?.roundBet || 0}
         minRaise={gameState.minRaise}
         balance={myPlayer?.balance || 0}
-        canShowCards={canShowCards}
         onRequestRaise={openRaiseSlider}
         onAction={handleAction}
        />
