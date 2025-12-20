@@ -67,7 +67,8 @@ export class PokerTable {
             currentCallAmount: blindStructure.big,
             dealerIdx: 0,
             winningCards: [],
-            spectatorCount: 0
+            spectatorCount: 0,
+            blinds: blindStructure
         };
     }
 
@@ -345,7 +346,8 @@ export class PokerTable {
             currentCallAmount: this.blindStructure.big,
             dealerIdx: nextDealerIdx,
             winningCards: [],
-            spectatorCount: this.gameState.spectatorCount
+            spectatorCount: this.gameState.spectatorCount,
+            blinds: this.blindStructure
         };
 
         let currentTurnIdx = startIdx;

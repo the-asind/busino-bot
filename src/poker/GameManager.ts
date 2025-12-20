@@ -43,6 +43,13 @@ export class GameManager {
                 const tableId = this.createLobbyInternal(msg.name, blinds, !!msg.password, msg.password);
                 // Auto join
                 await this.joinLobby(ws, userId, user.first_name, tableId);
+
+                // Check if join was successful
+                const table = this.tables.get(tableId);
+                if (table && table.activePlayerCount === 0) {
+                    // Join failed (e.g. funds), destroy empty table
+                    this.tables.delete(tableId);
+                }
                 return;
             }
 

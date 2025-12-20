@@ -66,6 +66,7 @@ export interface GameState {
   dealerIdx: number;
   winningCards?: number[];
   spectatorCount: number;
+  blinds?: BlindStructure;
 }
 
 // --- PROTOCOL DEFINITIONS ---

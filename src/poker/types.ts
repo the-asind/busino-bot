@@ -60,6 +60,7 @@ export interface GameState {
     dealerIdx: number;
     winningCards: number[];
     spectatorCount: number;
+    blinds: BlindStructure;
 }
 
 export interface Lobby {

@@ -27,10 +27,10 @@ interface FloatingChipData {
 
 const POSITIONS = [
     { x: '50%', y: '78%' }, // 0: Hero (Bottom)
-    { x: '18%', y: '50%' }, // 1: Left
+    { x: '18%', y: '60%' }, // 1: Left
     { x: '25%', y: '18%' }, // 2: Top Left
     { x: '75%', y: '18%' }, // 3: Top Right
-    { x: '82%', y: '50%' }, // 4: Right
+    { x: '82%', y: '60%' }, // 4: Right
 ];
 const POT_POSITION = { x: '50%', y: '38%' };
 
@@ -383,7 +383,7 @@ export const GameView: React.FC<GameViewProps> = ({ lobbyId, blindStructure, onL
         <div className="flex flex-col items-center">
             <div className="bg-black/30 px-4 py-1 rounded-full backdrop-blur-sm border border-white/5">
                 <span className="text-yellow-500 font-bold text-xs mr-1">БЛАЙНДЫ</span>
-                <span className="text-white font-bold text-xs">{blindStructure.small}/{blindStructure.big}</span>
+                <span className="text-white font-bold text-xs">{gameState.blinds ? `${gameState.blinds.small}/${gameState.blinds.big}` : `${blindStructure.small}/${blindStructure.big}`}</span>
             </div>
         </div>
 
@@ -528,7 +528,7 @@ export const GameView: React.FC<GameViewProps> = ({ lobbyId, blindStructure, onL
 
       {/* Raise Slider */}
       {showRaiseSlider && (
-        <div className="absolute bottom-0 right-0 w-full h-[45vh] bg-slate-900 border-t border-slate-700 z-[60] shadow-2xl flex flex-col p-6 animate-slide-up rounded-t-2xl">
+        <div className="absolute bottom-0 right-0 w-full h-[45vh] min-h-[400px] bg-slate-900 border-t border-slate-700 z-[60] shadow-2xl flex flex-col p-6 pb-12 animate-slide-up rounded-t-2xl">
             <div className="flex justify-between items-center mb-6">
                 <h3 className="text-white font-bold text-lg">Размер рейза</h3>
                 <button onClick={() => setShowRaiseSlider(false)} className="text-slate-400 hover:text-white p-2 text-xl">✕</button>
