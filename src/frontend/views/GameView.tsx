@@ -27,10 +27,10 @@ interface FloatingChipData {
 
 const POSITIONS = [
     { x: '50%', y: '78%' }, // 0: Hero (Bottom)
-    { x: '18%', y: '60%' }, // 1: Left
+    { x: '18%', y: '65%' }, // 1: Left
     { x: '25%', y: '18%' }, // 2: Top Left
     { x: '75%', y: '18%' }, // 3: Top Right
-    { x: '82%', y: '60%' }, // 4: Right
+    { x: '82%', y: '65%' }, // 4: Right
 ];
 const POT_POSITION = { x: '50%', y: '38%' };
 
