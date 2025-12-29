@@ -36,7 +36,10 @@ const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<'lobby' | 'game'>('lobby');
   const [activeLobbyId, setActiveLobbyId] = useState<number | null>(null);
   const [currentBlinds, setCurrentBlinds] = useState<BlindStructure | null>(null);
-  const [userAvatar, setUserAvatar] = useState<string | null>(null);
+  const [userAvatar, setUserAvatar] = useState<string | null>(() => {
+      // Lazy initialization to ensure avatar is available immediately if loaded
+      return window.Telegram?.WebApp?.initDataUnsafe?.user?.photo_url || null;
+  });
 
   useEffect(() => {
     // Initialize Telegram WebApp
@@ -45,8 +48,9 @@ const App: React.FC = () => {
       window.Telegram.WebApp.expand();
       window.Telegram.WebApp.enableClosingConfirmation();
 
+      // Fallback update in case it wasn't ready during initial render (unlikely but safe)
       const user = window.Telegram.WebApp.initDataUnsafe.user;
-      if (user && user.photo_url) {
+      if (user && user.photo_url && user.photo_url !== userAvatar) {
           setUserAvatar(user.photo_url);
       }
     }

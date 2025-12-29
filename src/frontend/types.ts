@@ -66,6 +66,7 @@ export interface GameState {
   dealerIdx: number;
   winningCards?: number[];
   spectatorCount: number;
+  blinds?: BlindStructure;
 }
 
 // --- PROTOCOL DEFINITIONS ---
@@ -105,7 +106,7 @@ export interface ServerMessage {
 
 export interface PlayerActionEvent {
   playerId: number;
-  action: 'Fold' | 'Check' | 'Call' | 'Raise' | 'Win' | 'ShowCards';
+  action: 'Fold' | 'Check' | 'Call' | 'Raise' | 'Win';
   amount?: number;
   cards?: [CardData, CardData];
 }

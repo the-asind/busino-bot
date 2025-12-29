@@ -91,6 +91,18 @@ export const evaluateHand = (holeCards: CardData[], communityCards: CardData[]):
   const validCards = allCards.filter(c => c !== null && c !== undefined);
 
   if (validCards.length < 5) {
+      // Preflop or early stage: Check for Pair or High Card
+      const groups = getGroups(validCards);
+      if (groups[0].length === 2) {
+          const pair = groups[0];
+          return {
+              score: 2000000 + RANK_VALUE[pair[0].rank],
+              name: 'Пара',
+              bestCards: pair,
+              handCards: pair // Highlight both cards of the pair
+          };
+      }
+
       const best = sortByRank(validCards).slice(0, 5);
       return {
           score: 0,

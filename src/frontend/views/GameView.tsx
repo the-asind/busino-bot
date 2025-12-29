@@ -27,10 +27,10 @@ interface FloatingChipData {
 
 const POSITIONS = [
     { x: '50%', y: '78%' }, // 0: Hero (Bottom)
-    { x: '18%', y: '50%' }, // 1: Left
+    { x: '18%', y: '65%' }, // 1: Left
     { x: '25%', y: '18%' }, // 2: Top Left
     { x: '75%', y: '18%' }, // 3: Top Right
-    { x: '82%', y: '50%' }, // 4: Right
+    { x: '82%', y: '65%' }, // 4: Right
 ];
 const POT_POSITION = { x: '50%', y: '38%' };
 
@@ -47,7 +47,6 @@ export const GameView: React.FC<GameViewProps> = ({ lobbyId, blindStructure, onL
   // Animation State
   const [floatingChips, setFloatingChips] = useState<FloatingChipData[]>([]);
   const [activeStickers, setActiveStickers] = useState<{id: string, playerId: number, stickerId: number}[]>([]);
-  const [hasShownCards, setHasShownCards] = useState(false);
 
   const playersRef = useRef<(Player | null)[]>([]);
 
@@ -270,12 +269,6 @@ export const GameView: React.FC<GameViewProps> = ({ lobbyId, blindStructure, onL
   }, [players]);
 
   const handleAction = (type: string, amount: number = 0) => {
-      if (type === 'ShowCards') {
-          webSocketService.send({ type: 'SHOW_CARDS' });
-          setHasShownCards(true);
-          return;
-      }
-      setHasShownCards(false); // Reset on any other action (new round starts)
       const actionTypeMap: Record<string, any> = { 'Fold': 'FOLD', 'Check': 'CHECK', 'Call': 'CALL', 'Raise': 'RAISE' };
       webSocketService.send({ type: actionTypeMap[type], amount });
       if (type === 'Raise') setShowRaiseSlider(false);
@@ -320,14 +313,6 @@ export const GameView: React.FC<GameViewProps> = ({ lobbyId, blindStructure, onL
 
   const maxRaiseAmount = myPlayer ? myPlayer.balance + myPlayer.roundBet : 0;
   const minRaiseAmount = gameState.currentCallAmount + gameState.minRaise;
-
-  // Logic for Show Cards Button
-  const canShowCards = !!(
-      myPlayer &&
-      myPlayer.isWinner &&
-      gameState.stage !== GameStage.SHOWDOWN &&
-      !hasShownCards
-  );
 
   return (
     <div className="relative w-full h-full min-h-screen bg-[#1b3a2f] overflow-hidden flex flex-col font-sans">
@@ -380,12 +365,6 @@ export const GameView: React.FC<GameViewProps> = ({ lobbyId, blindStructure, onL
       {/* Top Bar */}
       <div className="absolute top-0 left-0 right-0 p-3 flex justify-between items-start z-50">
         <button onClick={onLeave} className="text-white/70 hover:text-white flex items-center gap-1 bg-black/30 px-3 py-1.5 rounded-full backdrop-blur-sm transition-colors">← ВЫХОД</button>
-        <div className="flex flex-col items-center">
-            <div className="bg-black/30 px-4 py-1 rounded-full backdrop-blur-sm border border-white/5">
-                <span className="text-yellow-500 font-bold text-xs mr-1">БЛАЙНДЫ</span>
-                <span className="text-white font-bold text-xs">{blindStructure.small}/{blindStructure.big}</span>
-            </div>
-        </div>
 
         {/* SPECTATOR EYE */}
         <div className="w-20 flex justify-end">
@@ -528,7 +507,7 @@ export const GameView: React.FC<GameViewProps> = ({ lobbyId, blindStructure, onL
 
       {/* Raise Slider */}
       {showRaiseSlider && (
-        <div className="absolute bottom-0 right-0 w-full h-[45vh] bg-slate-900 border-t border-slate-700 z-[60] shadow-2xl flex flex-col p-6 animate-slide-up rounded-t-2xl">
+        <div className="absolute bottom-0 right-0 w-full h-[45vh] min-h-[400px] bg-slate-900 border-t border-slate-700 z-[60] shadow-2xl flex flex-col p-6 pb-12 animate-slide-up rounded-t-2xl">
             <div className="flex justify-between items-center mb-6">
                 <h3 className="text-white font-bold text-lg">Размер рейза</h3>
                 <button onClick={() => setShowRaiseSlider(false)} className="text-slate-400 hover:text-white p-2 text-xl">✕</button>
@@ -555,7 +534,6 @@ export const GameView: React.FC<GameViewProps> = ({ lobbyId, blindStructure, onL
         myRoundBet={myPlayer?.roundBet || 0}
         minRaise={gameState.minRaise}
         balance={myPlayer?.balance || 0}
-        canShowCards={canShowCards}
         onRequestRaise={openRaiseSlider}
         onAction={handleAction}
        />
