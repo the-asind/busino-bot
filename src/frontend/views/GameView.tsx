@@ -365,12 +365,6 @@ export const GameView: React.FC<GameViewProps> = ({ lobbyId, blindStructure, onL
       {/* Top Bar */}
       <div className="absolute top-0 left-0 right-0 p-3 flex justify-between items-start z-50">
         <button onClick={onLeave} className="text-white/70 hover:text-white flex items-center gap-1 bg-black/30 px-3 py-1.5 rounded-full backdrop-blur-sm transition-colors">← ВЫХОД</button>
-        <div className="flex flex-col items-center">
-            <div className="bg-black/30 px-4 py-1 rounded-full backdrop-blur-sm border border-white/5">
-                <span className="text-yellow-500 font-bold text-xs mr-1">БЛАЙНДЫ</span>
-                <span className="text-white font-bold text-xs">{gameState.blinds ? `${gameState.blinds.small}/${gameState.blinds.big}` : `${blindStructure.small}/${blindStructure.big}`}</span>
-            </div>
-        </div>
 
         {/* SPECTATOR EYE */}
         <div className="w-20 flex justify-end">

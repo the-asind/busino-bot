@@ -34,7 +34,7 @@ export const PlayerSeat: React.FC<PlayerSeatProps> = ({ player, positionClass, s
 
   const getChipPosition = (idx: number) => {
     switch(idx) {
-      case 0: return '-top-12 left-1/2 -translate-x-1/2';
+      case 0: return 'top-20 left-1/2 -translate-x-1/2';
       case 1: return 'top-1/2 left-24 -translate-y-1/2';
       case 2: return '-bottom-10 left-1/2 -translate-x-1/2';
       case 3: return '-bottom-10 right-1/2 translate-x-1/2';
