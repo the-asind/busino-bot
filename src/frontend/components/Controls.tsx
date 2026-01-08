@@ -8,6 +8,7 @@ interface ControlsProps {
   minRaise: number;
   balance: number;
   canShowCards?: boolean;
+  showCardsDisabled?: boolean;
   onAction: (action: string, amount?: number) => void;
   onRequestRaise: () => void;
 }
@@ -18,6 +19,7 @@ export const Controls: React.FC<ControlsProps> = ({
   currentCallAmount,
   myRoundBet,
   canShowCards = false,
+  showCardsDisabled = false,
   onRequestRaise,
   onAction
 }) => {
@@ -75,8 +77,13 @@ export const Controls: React.FC<ControlsProps> = ({
       return (
         <div className="fixed bottom-0 left-0 right-0 bg-slate-900/95 border-t border-slate-700 p-3 pb-8 backdrop-blur-md z-50 flex justify-center">
             <button
-              onClick={() => onAction('ShowCards')}
-              className="w-full max-w-sm bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-xl shadow-lg border-b-4 border-purple-800 active:border-b-0 active:translate-y-1 transition-all"
+              onClick={() => !showCardsDisabled && onAction('ShowCards')}
+              disabled={showCardsDisabled}
+              className={`w-full max-w-sm font-bold py-3 rounded-xl shadow-lg border-b-4 transition-all ${
+                  showCardsDisabled
+                  ? 'bg-slate-600 text-slate-400 border-slate-800 cursor-not-allowed'
+                  : 'bg-purple-600 hover:bg-purple-700 text-white border-purple-800 active:border-b-0 active:translate-y-1'
+              }`}
             >
               SHOW CARDS
             </button>

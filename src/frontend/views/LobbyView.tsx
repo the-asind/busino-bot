@@ -23,6 +23,9 @@ export const LobbyView: React.FC<LobbyViewProps> = ({ onJoinGame, userAvatar }) 
   const [joinPassword, setJoinPassword] = useState('');
   const [joiningLobbyId, setJoiningLobbyId] = useState<number | null>(null);
 
+  // Store pending join blinds
+  const [pendingJoinBlinds, setPendingJoinBlinds] = useState<BlindStructure | null>(null);
+
   useEffect(() => {
     // Connect to WS and listen for lobby list
     const cleanup = webSocketService.connect((msg: ServerMessage) => {
@@ -43,7 +46,9 @@ export const LobbyView: React.FC<LobbyViewProps> = ({ onJoinGame, userAvatar }) 
             // If we joined, `lobby` variable has it.
 
             // Ensure we use the exact structure from the lobby if available
-            onJoinGame(lobbyId, lobby ? lobby.blinds : BLIND_STRUCTURES[blindIndex]);
+            const targetBlinds = pendingJoinBlinds || (lobby ? lobby.blinds : BLIND_STRUCTURES[blindIndex]);
+            onJoinGame(lobbyId, targetBlinds);
+            setPendingJoinBlinds(null);
         } else if (msg.type === 'ERROR') {
             setError(msg.payload.error);
             setTimeout(() => setError(null), 3000);
@@ -72,11 +77,13 @@ export const LobbyView: React.FC<LobbyViewProps> = ({ onJoinGame, userAvatar }) 
         type: 'CREATE',
         name: newGameName,
         blindsIndex: blindIndex,
-        password: isPrivate ? password : undefined
+        password: isPrivate ? password : undefined,
+        avatarUrl: userAvatar
     });
   };
 
   const handleJoinRequest = (lobby: Lobby) => {
+      setPendingJoinBlinds(lobby.blinds);
       if (lobby.isPrivate) {
           setJoiningLobbyId(lobby.id);
       } else {

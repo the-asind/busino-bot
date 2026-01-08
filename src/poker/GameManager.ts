@@ -41,8 +41,8 @@ export class GameManager {
             if (msg.type === 'CREATE') {
                 const blinds = BLIND_STRUCTURES[msg.blindsIndex] || BLIND_STRUCTURES[0];
                 const tableId = this.createLobbyInternal(msg.name, blinds, !!msg.password, msg.password);
-                // Auto join
-                await this.joinLobby(ws, userId, user.first_name, tableId);
+                // Auto join with password if provided
+                await this.joinLobby(ws, userId, user.first_name, tableId, msg.password, undefined, msg.avatarUrl);
                 return;
             }
 

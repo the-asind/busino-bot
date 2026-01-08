@@ -6,19 +6,16 @@ export const generateAvatar = (name: string): string => {
     }
 
     // 2. Generate Pastel Color (HSL)
-    // Hue: 0-360 (from hash)
-    // Saturation: 60-80% (Pastel)
-    // Lightness: 70-85% (Pastel/Light)
     const h = Math.abs(hash % 360);
     const s = 70 + (Math.abs(hash) % 20);
     const l = 75 + (Math.abs(hash) % 10);
 
     const color1 = `hsl(${h}, ${s}%, ${l}%)`;
-    const color2 = `hsl(${h}, ${s}%, ${l - 15}%)`; // Slightly darker for subtle gradient
+    const color2 = `hsl(${h}, ${s}%, ${l - 15}%)`;
 
     const letter = name.charAt(0).toUpperCase();
 
-    // 3. Create SVG Data URI
+    // 3. Create SVG
     const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
         <defs>
@@ -32,5 +29,7 @@ export const generateAvatar = (name: string): string => {
     </svg>
     `;
 
-    return `data:image/svg+xml;base64,${btoa(svg)}`;
+    // UTF-8 Safe Base64
+    const encoded = btoa(unescape(encodeURIComponent(svg)));
+    return `data:image/svg+xml;base64,${encoded}`;
 };
